@@ -7,40 +7,20 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
 
 
-#include <boost/shared_ptr.hpp>
-#include <gnuradio/analog/sig_source_waveform.h>
-#include <gnuradio/blocks/file_source.h>
-#include <gnuradio/top_block.h>
-#include <chrono>
-#ifdef GR_GREATER_38
-#include <gnuradio/analog/sig_source.h>
-#else
-#include <gnuradio/analog/sig_source_c.h>
-#endif
+#include "concurrent_queue.h"
 #include "fir_filter.h"
 #include "galileo_e1_pcps_cccwsr_ambiguous_acquisition.h"
 #include "gen_signal_source.h"
@@ -50,24 +30,36 @@
 #include "in_memory_configuration.h"
 #include "signal_generator.h"
 #include "signal_generator_c.h"
+#include <boost/shared_ptr.hpp>
+#include <gnuradio/analog/sig_source_waveform.h>
+#include <gnuradio/blocks/file_source.h>
 #include <gnuradio/blocks/null_sink.h>
-#include <gnuradio/msg_queue.h>
+#include <gnuradio/top_block.h>
+#include <pmt/pmt.h>
+#include <chrono>
+#include <thread>
+#include <utility>
+#ifdef GR_GREATER_38
+#include <gnuradio/analog/sig_source.h>
+#else
+#include <gnuradio/analog/sig_source_c.h>
+#endif
 
 // ######## GNURADIO BLOCK MESSAGE RECEVER #########
 class GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx;
 
-typedef boost::shared_ptr<GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx> GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr;
+using GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr = boost::shared_ptr<GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx>;
 
-GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(concurrent_queue<int>& queue);
+GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(Concurrent_Queue<int>& queue);
 
 
 class GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx : public gr::block
 {
 private:
-    friend GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(concurrent_queue<int>& queue);
+    friend GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(Concurrent_Queue<int>& queue);
     void msg_handler_events(pmt::pmt_t msg);
-    GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx(concurrent_queue<int>& queue);
-    concurrent_queue<int>& channel_internal_queue;
+    explicit GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx(Concurrent_Queue<int>& queue);
+    Concurrent_Queue<int>& channel_internal_queue;
 
 public:
     int rx_message;
@@ -75,7 +67,7 @@ public:
 };
 
 
-GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(concurrent_queue<int>& queue)
+GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(Concurrent_Queue<int>& queue)
 {
     return GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_sptr(new GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx(queue));
 }
@@ -85,7 +77,7 @@ void GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx::msg_handler_events(pmt:
 {
     try
         {
-            int64_t message = pmt::to_long(msg);
+            int64_t message = pmt::to_long(std::move(msg));
             rx_message = message;
             channel_internal_queue.push(rx_message);
         }
@@ -97,16 +89,14 @@ void GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx::msg_handler_events(pmt:
 }
 
 
-GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx::GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx(concurrent_queue<int>& queue) : gr::block("GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx", gr::io_signature::make(0, 0, 0), gr::io_signature::make(0, 0, 0)), channel_internal_queue(queue)
+GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx::GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx(Concurrent_Queue<int>& queue) : gr::block("GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx", gr::io_signature::make(0, 0, 0), gr::io_signature::make(0, 0, 0)), channel_internal_queue(queue)
 {
     this->message_port_register_in(pmt::mp("events"));
     this->set_msg_handler(pmt::mp("events"), boost::bind(&GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx::msg_handler_events, this, _1));
     rx_message = 0;
 }
 
-GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx::~GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx()
-{
-}
+GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx::~GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx() = default;
 
 
 // ###########################################################
@@ -124,9 +114,7 @@ protected:
         init();
     }
 
-    ~GalileoE1PcpsCccwsrAmbiguousAcquisitionTest()
-    {
-    }
+    ~GalileoE1PcpsCccwsrAmbiguousAcquisitionTest() = default;
 
     void init();
     void config_1();
@@ -136,8 +124,8 @@ protected:
     void process_message();
     void stop_queue();
 
-    concurrent_queue<int> channel_internal_queue;
-    gr::msg_queue::sptr queue;
+    Concurrent_Queue<int> channel_internal_queue;
+    std::shared_ptr<Concurrent_Queue<pmt::pmt_t>> queue;
     gr::top_block_sptr top_block;
     std::shared_ptr<GalileoE1PcpsCccwsrAmbiguousAcquisition> acquisition;
     std::shared_ptr<GNSSBlockFactory> factory;
@@ -146,7 +134,7 @@ protected:
     size_t item_size;
     bool stop;
     int message;
-    boost::thread ch_thread;
+    std::thread ch_thread;
 
     unsigned int integration_time_ms = 0;
     unsigned int fs_in = 0;
@@ -349,7 +337,7 @@ void GalileoE1PcpsCccwsrAmbiguousAcquisitionTest::config_2()
 void GalileoE1PcpsCccwsrAmbiguousAcquisitionTest::start_queue()
 {
     stop = false;
-    ch_thread = boost::thread(&GalileoE1PcpsCccwsrAmbiguousAcquisitionTest::wait_message, this);
+    ch_thread = std::thread(&GalileoE1PcpsCccwsrAmbiguousAcquisitionTest::wait_message, this);
 }
 
 
@@ -440,7 +428,7 @@ TEST_F(GalileoE1PcpsCccwsrAmbiguousAcquisitionTest, ConnectAndRun)
 
     config_1();
     top_block = gr::make_top_block("Acquisition test");
-    queue = gr::msg_queue::make(0);
+    queue = std::make_shared<Concurrent_Queue<pmt::pmt_t>>();
 
     std::shared_ptr<GNSSBlockInterface> acq_ = factory->GetBlock(config, "Acquisition_1B", "Galileo_E1_PCPS_CCCWSR_Ambiguous_Acquisition", 1, 0);
     acquisition = std::dynamic_pointer_cast<GalileoE1PcpsCccwsrAmbiguousAcquisition>(acq_);
@@ -470,7 +458,7 @@ TEST_F(GalileoE1PcpsCccwsrAmbiguousAcquisitionTest, ValidationOfResults)
 {
     config_1();
     top_block = gr::make_top_block("Acquisition test");
-    queue = gr::msg_queue::make(0);
+    queue = std::make_shared<Concurrent_Queue<pmt::pmt_t>>();
     std::shared_ptr<GNSSBlockInterface> acq_ = factory->GetBlock(config, "Acquisition_1B", "Galileo_E1_PCPS_CCCWSR_Ambiguous_Acquisition", 1, 0);
     acquisition = std::dynamic_pointer_cast<GalileoE1PcpsCccwsrAmbiguousAcquisition>(acq_);
     boost::shared_ptr<GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx> msg_rx = GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(channel_internal_queue);
@@ -541,7 +529,7 @@ TEST_F(GalileoE1PcpsCccwsrAmbiguousAcquisitionTest, ValidationOfResults)
             if (i == 0)
                 {
                     EXPECT_EQ(1, message) << "Acquisition failure. Expected message: 1=ACQ SUCCESS.";
-                    //EXPECT_EQ(2, message) << "Acquisition failure. Expected message: 1=ACQ SUCCESS.";
+                    // EXPECT_EQ(2, message) << "Acquisition failure. Expected message: 1=ACQ SUCCESS.";
                     if (message == 1)
                         {
                             EXPECT_EQ(static_cast<unsigned int>(1), correct_estimation_counter) << "Acquisition failure. Incorrect parameters estimation.";
@@ -551,16 +539,10 @@ TEST_F(GalileoE1PcpsCccwsrAmbiguousAcquisitionTest, ValidationOfResults)
                 {
                     EXPECT_EQ(2, message) << "Acquisition failure. Expected message: 2=ACQ FAIL.";
                 }
-#ifdef OLD_BOOST
+
             ASSERT_NO_THROW({
-                ch_thread.timed_join(boost::posix_time::seconds(1));
+                ch_thread.join();
             }) << "Failure while waiting the queue to stop";
-#endif
-#ifndef OLD_BOOST
-            ASSERT_NO_THROW({
-                ch_thread.try_join_until(boost::chrono::steady_clock::now() + boost::chrono::milliseconds(50));
-            }) << "Failure while waiting the queue to stop";
-#endif
         }
 }
 
@@ -569,7 +551,7 @@ TEST_F(GalileoE1PcpsCccwsrAmbiguousAcquisitionTest, ValidationOfResultsProbabili
 {
     config_2();
     top_block = gr::make_top_block("Acquisition test");
-    queue = gr::msg_queue::make(0);
+    queue = std::make_shared<Concurrent_Queue<pmt::pmt_t>>();
     std::shared_ptr<GNSSBlockInterface> acq_ = factory->GetBlock(config, "Acquisition_1B", "Galileo_E1_PCPS_CCCWSR_Ambiguous_Acquisition", 1, 0);
     acquisition = std::dynamic_pointer_cast<GalileoE1PcpsCccwsrAmbiguousAcquisition>(acq_);
     boost::shared_ptr<GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx> msg_rx = GalileoE1PcpsCccwsrAmbiguousAcquisitionTest_msg_rx_make(channel_internal_queue);

@@ -6,39 +6,28 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
 
-#ifndef GNSS_SDR_SIGNAL_CONDITIONER_H_
-#define GNSS_SDR_SIGNAL_CONDITIONER_H_
+#ifndef GNSS_SDR_SIGNAL_CONDITIONER_H
+#define GNSS_SDR_SIGNAL_CONDITIONER_H
 
 #include "gnss_block_interface.h"
+#include <gnuradio/block.h>
+#include <cstddef>
+#include <memory>
 #include <string>
 
 class ConfigurationInterface;
-class AcquisitionInterface;
-class TrackingInterface;
-class TelemetryDecoderInterface;
 
 /*!
  * \brief This class wraps blocks to change data_type_adapter, input_filter and resampler
@@ -52,8 +41,8 @@ public:
         std::shared_ptr<GNSSBlockInterface> data_type_adapt, std::shared_ptr<GNSSBlockInterface> in_filt,
         std::shared_ptr<GNSSBlockInterface> res, std::string role, std::string implementation);
 
-    //! Virtual destructor
-    virtual ~SignalConditioner();
+    //! Destructor
+    ~SignalConditioner() = default;
 
     void connect(gr::top_block_sptr top_block) override;
     void disconnect(gr::top_block_sptr top_block) override;
@@ -79,4 +68,4 @@ private:
     bool connected_;
 };
 
-#endif /*GNSS_SDR_SIGNAL_CONDITIONER_H_*/
+#endif  // GNSS_SDR_SIGNAL_CONDITIONER_H

@@ -1,38 +1,27 @@
 /*!
-* \file main.cc
-* \brief Main file of the GNSS-SDR program.
-* \author Carlos Aviles, 2010. carlos.avilesr(at)googlemail.com
-*
-* It sets up the logging system, creates a ControlThread object,
-* makes it run, and releases memory back when the main thread has ended.
-*
-* -------------------------------------------------------------------------
-*
-* Copyright (C) 2010-2018 (see AUTHORS file for a list of contributors)
-*
-* GNSS-SDR is a software defined Global Navigation
-* Satellite Systems receiver
-*
-* This file is part of GNSS-SDR.
-*
-* GNSS-SDR is free software: you can redistribute it and/or modify
-* it under the terms of the GNU General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* GNSS-SDR is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-* GNU General Public License for more details.
-*
-* You should have received a copy of the GNU General Public License
-* along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
-*
-* -------------------------------------------------------------------------
-*/
+ * \file main.cc
+ * \brief Main file of the GNSS-SDR program.
+ * \author Carlos Aviles, 2010. carlos.avilesr(at)googlemail.com
+ *
+ * It sets up the logging system, creates a ControlThread object,
+ * makes it run, and releases memory back when the main thread has ended.
+ *
+ * -------------------------------------------------------------------------
+ *
+ * Copyright (C) 2010-2019 (see AUTHORS file for a list of contributors)
+ *
+ * GNSS-SDR is a software defined Global Navigation
+ * Satellite Systems receiver
+ *
+ * This file is part of GNSS-SDR.
+ *
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
+ * -------------------------------------------------------------------------
+ */
 
 #ifndef GNSS_SDR_VERSION
-#define GNSS_SDR_VERSION "0.0.10"
+#define GNSS_SDR_VERSION "0.0.12"
 #endif
 
 #ifndef GOOGLE_STRIP_LOG
@@ -42,29 +31,41 @@
 #include "concurrent_map.h"
 #include "concurrent_queue.h"
 #include "control_thread.h"
-#include "gnss_sdr_flags.h"
 #include "gps_acq_assist.h"
-#include <boost/exception/diagnostic_information.hpp>
-#include <boost/exception/exception.hpp>    // for exception
-#include <boost/filesystem/operations.hpp>  // for create_directories, exists
-#include <boost/filesystem/path.hpp>        // for path, operator<<
-#include <boost/system/error_code.hpp>      // for error_code
-#include <gflags/gflags.h>
-#include <glog/logging.h>
-#include <chrono>
-#include <exception>
-#include <iostream>
-#include <memory>
-#include <string>
+#include <boost/exception/diagnostic_information.hpp>  // for diagnostic_information
+#include <boost/exception/exception.hpp>               // for exception
+#include <boost/thread/exceptions.hpp>                 // for thread_resource_error
+#include <gflags/gflags.h>                             // for ShutDownCommandLineFlags
+#include <glog/logging.h>                              // for FLAGS_log_dir
+#include <chrono>                                      // for time_point
+#include <exception>                                   // for exception
+#include <iostream>                                    // for operator<<, endl
+#include <memory>                                      // for unique_ptr
+#include <string>                                      // for string
 
 #if CUDA_GPU_ACCEL
 // For the CUDA runtime routines (prefixed with "cuda_")
 #include <cuda_runtime.h>
 #endif
 
-
-using google::LogMessage;
-
+#if HAS_STD_FILESYSTEM
+#include <system_error>
+namespace errorlib = std;
+#if HAS_STD_FILESYSTEM_EXPERIMENTAL
+#include <experimental/filesystem>
+namespace fs = std::experimental::filesystem;
+#else
+#include <filesystem>
+namespace fs = std::filesystem;
+#endif
+#else
+#include <boost/filesystem/operations.hpp>   // for create_directories, exists
+#include <boost/filesystem/path.hpp>         // for path, operator<<
+#include <boost/filesystem/path_traits.hpp>  // for filesystem
+#include <boost/system/error_code.hpp>       // for error_code
+namespace fs = boost::filesystem;
+namespace errorlib = boost::system;
+#endif
 
 /*
 * Concurrent queues that communicates the Telemetry Decoder
@@ -72,14 +73,14 @@ using google::LogMessage;
 */
 
 // For GPS NAVIGATION (L1)
-concurrent_queue<Gps_Acq_Assist> global_gps_acq_assist_queue;
-concurrent_map<Gps_Acq_Assist> global_gps_acq_assist_map;
+Concurrent_Queue<Gps_Acq_Assist> global_gps_acq_assist_queue;
+Concurrent_Map<Gps_Acq_Assist> global_gps_acq_assist_map;
 
 int main(int argc, char** argv)
 {
     const std::string intro_help(
         std::string("\nGNSS-SDR is an Open Source GNSS Software Defined Receiver\n") +
-        "Copyright (C) 2010-2018 (see AUTHORS file for a list of contributors)\n" +
+        "Copyright (C) 2010-2019 (see AUTHORS file for a list of contributors)\n" +
         "This program comes with ABSOLUTELY NO WARRANTY;\n" +
         "See COPYING file to see a copy of the General Public License\n \n");
 
@@ -106,24 +107,24 @@ int main(int argc, char** argv)
             if (FLAGS_log_dir.empty())
                 {
                     std::cout << "Logging will be written at "
-                              << boost::filesystem::temp_directory_path()
+                              << fs::temp_directory_path()
                               << std::endl
                               << "Use gnss-sdr --log_dir=/path/to/log to change that."
                               << std::endl;
                 }
             else
                 {
-                    const boost::filesystem::path p(FLAGS_log_dir);
-                    if (!boost::filesystem::exists(p))
+                    const fs::path p(FLAGS_log_dir);
+                    if (!fs::exists(p))
                         {
                             std::cout << "The path "
                                       << FLAGS_log_dir
                                       << " does not exist, attempting to create it."
                                       << std::endl;
-                            boost::system::error_code ec;
-                            if (!boost::filesystem::create_directory(p, ec))
+                            errorlib::error_code ec;
+                            if (!fs::create_directory(p, ec))
                                 {
-                                    std::cout << "Could not create the " << FLAGS_log_dir << " folder. GNSS-SDR program ended." << std::endl;
+                                    std::cerr << "Could not create the " << FLAGS_log_dir << " folder. GNSS-SDR program ended." << std::endl;
                                     google::ShutDownCommandLineFlags();
                                     return 1;
                                 }
@@ -132,28 +133,37 @@ int main(int argc, char** argv)
                 }
         }
 
-    std::unique_ptr<ControlThread> control_thread(new ControlThread());
-
-    // record startup time
-    std::chrono::time_point<std::chrono::system_clock> start, end;
+    std::chrono::time_point<std::chrono::system_clock> start;
+    std::chrono::time_point<std::chrono::system_clock> end;
     start = std::chrono::system_clock::now();
-
-    int return_code;
+    int return_code = 0;
     try
         {
+            std::unique_ptr<ControlThread> control_thread(new ControlThread());
+            // record startup time
+            start = std::chrono::system_clock::now();
             return_code = control_thread->run();
+        }
+    catch (const boost::thread_resource_error& e)
+        {
+            std::cerr << "Failed to create boost thread." << std::endl;
+            google::ShutDownCommandLineFlags();
+            std::cout << "GNSS-SDR program ended." << std::endl;
+            return 1;
         }
     catch (const boost::exception& e)
         {
             if (GOOGLE_STRIP_LOG == 0)
                 {
                     LOG(WARNING) << "Boost exception: " << boost::diagnostic_information(e);
+                    std::cerr << boost::diagnostic_information(e) << std::endl;
                 }
             else
                 {
                     std::cerr << "Boost exception: " << boost::diagnostic_information(e) << std::endl;
                 }
             google::ShutDownCommandLineFlags();
+            std::cout << "GNSS-SDR program ended." << std::endl;
             return 1;
         }
     catch (const std::exception& ex)
@@ -161,12 +171,14 @@ int main(int argc, char** argv)
             if (GOOGLE_STRIP_LOG == 0)
                 {
                     LOG(WARNING) << "C++ Standard Library exception: " << ex.what();
+                    std::cerr << ex.what() << std::endl;
                 }
             else
                 {
                     std::cerr << "C++ Standard Library exception: " << ex.what() << std::endl;
                 }
             google::ShutDownCommandLineFlags();
+            std::cout << "GNSS-SDR program ended." << std::endl;
             return 1;
         }
     catch (...)
@@ -174,12 +186,14 @@ int main(int argc, char** argv)
             if (GOOGLE_STRIP_LOG == 0)
                 {
                     LOG(WARNING) << "Unexpected catch. This should not happen.";
+                    std::cerr << "Unexpected error." << std::endl;
                 }
             else
                 {
                     std::cerr << "Unexpected catch. This should not happen." << std::endl;
                 }
             google::ShutDownCommandLineFlags();
+            std::cout << "GNSS-SDR program ended." << std::endl;
             return 1;
         }
 

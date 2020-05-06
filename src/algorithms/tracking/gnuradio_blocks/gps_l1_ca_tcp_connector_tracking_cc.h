@@ -11,25 +11,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -41,6 +30,7 @@
 #include "gnss_synchro.h"
 #include "tcp_communication.h"
 #include <gnuradio/block.h>
+#include <volk_gnsssdr/volk_gnsssdr_alloc.h>  // for volk_gnsssdr::vector
 #include <fstream>
 #include <map>
 #include <string>
@@ -48,7 +38,7 @@
 
 class Gps_L1_Ca_Tcp_Connector_Tracking_cc;
 
-typedef boost::shared_ptr<Gps_L1_Ca_Tcp_Connector_Tracking_cc> gps_l1_ca_tcp_connector_tracking_cc_sptr;
+using gps_l1_ca_tcp_connector_tracking_cc_sptr = boost::shared_ptr<Gps_L1_Ca_Tcp_Connector_Tracking_cc>;
 
 gps_l1_ca_tcp_connector_tracking_cc_sptr
 gps_l1_ca_tcp_connector_make_tracking_cc(
@@ -111,7 +101,7 @@ private:
 
     double d_code_phase_step_chips;
 
-    gr_complex *d_ca_code;
+    volk_gnsssdr::vector<gr_complex> d_ca_code;
 
     gr_complex *d_Early;
     gr_complex *d_Prompt;
@@ -126,9 +116,9 @@ private:
     float d_acq_code_phase_samples;
     float d_acq_carrier_doppler_hz;
     // correlator
-    float *d_local_code_shift_chips;
-    gr_complex *d_correlator_outs;
-    cpu_multicorrelator multicorrelator_cpu;
+    volk_gnsssdr::vector<float> d_local_code_shift_chips;
+    volk_gnsssdr::vector<gr_complex> d_correlator_outs;
+    Cpu_Multicorrelator multicorrelator_cpu;
 
     // tracking vars
     double d_code_freq_hz;
@@ -139,20 +129,20 @@ private:
     size_t d_port;
     int32_t d_listen_connection;
     float d_control_id;
-    tcp_communication d_tcp_com;
+    Tcp_Communication d_tcp_com;
 
-    //PRN period in samples
+    // PRN period in samples
     int32_t d_current_prn_length_samples;
     int32_t d_next_prn_length_samples;
     double d_sample_counter_seconds;
 
-    //processing samples counters
+    // processing samples counters
     uint64_t d_sample_counter;
     uint64_t d_acq_sample_stamp;
 
     // CN0 estimation and lock detector
     int32_t d_cn0_estimation_counter;
-    gr_complex *d_Prompt_buffer;
+    volk_gnsssdr::vector<gr_complex> d_Prompt_buffer;
     float d_carrier_lock_test;
     float d_CN0_SNV_dB_Hz;
     float d_carrier_lock_threshold;
@@ -170,4 +160,4 @@ private:
     std::string sys;
 };
 
-#endif  //GNSS_SDR_GPS_L1_CA_TCP_CONNECTOR_TRACKING_CC_H
+#endif  // GNSS_SDR_GPS_L1_CA_TCP_CONNECTOR_TRACKING_CC_H

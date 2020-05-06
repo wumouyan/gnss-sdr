@@ -1,32 +1,42 @@
-# Copyright (C) 2012-2018  (see AUTHORS file for a list of contributors)
+# Copyright (C) 2012-2020  (see AUTHORS file for a list of contributors)
+#
+# GNSS-SDR is a software-defined Global Navigation Satellite Systems receiver
 #
 # This file is part of GNSS-SDR.
 #
-# GNSS-SDR is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# GNSS-SDR is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 
 find_package(GPSTK QUIET)
 if(NOT GPSTK_FOUND OR ENABLE_OWN_GPSTK)
     include(GNUInstallDirs)
-    string(REGEX REPLACE /[^/]*$ "" LIBDIR ${CMAKE_INSTALL_LIBDIR})
-    set(GPSTK_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/../../../thirdparty/gpstk-${GNSSSDR_GPSTK_LOCAL_VERSION}/install/${LIBDIR}/${CMAKE_FIND_LIBRARY_PREFIXES}gpstk${CMAKE_SHARED_LIBRARY_SUFFIX})
+    set(GPSTK_LIBRARY ${CMAKE_CURRENT_SOURCE_DIR}/../../../thirdparty/gpstk-${GNSSSDR_GPSTK_LOCAL_VERSION}/install/${CMAKE_INSTALL_LIBDIR}/${CMAKE_FIND_LIBRARY_PREFIXES}gpstk${CMAKE_SHARED_LIBRARY_SUFFIX})
     set(GPSTK_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../../thirdparty/gpstk-${GNSSSDR_GPSTK_LOCAL_VERSION}/install/include)
 endif()
 
-set(CMAKE_INCLUDE_PATH ${CMAKE_INCLUDE_PATH} ${GPSTK_INCLUDE_DIR}/gpstk)
 
 find_package(Boost COMPONENTS iostreams serialization QUIET)
+if(CMAKE_VERSION VERSION_LESS 3.5)
+    if(NOT TARGET Boost::iostreams)
+        add_library(Boost::iostreams IMPORTED SHARED)
+        set_property(TARGET Boost::iostreams PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR})
+        set_property(TARGET Boost::iostreams PROPERTY
+            INTERFACE_LINK_LIBRARIES ${Boost_IOSTREAMS_LIBRARIES})
+        set_property(TARGET Boost::iostreams PROPERTY
+            IMPORTED_LOCATION ${Boost_IOSTREAMS_LIBRARIES})
+    endif()
+    if(NOT TARGET Boost::serialization)
+        add_library(Boost::serialization IMPORTED SHARED)
+        set_property(TARGET Boost::serialization PROPERTY
+            INTERFACE_INCLUDE_DIRECTORIES ${Boost_INCLUDE_DIR})
+        set_property(TARGET Boost::serialization PROPERTY
+            INTERFACE_LINK_LIBRARIES ${Boost_SERIALIZARION_LIBRARIES})
+        set_property(TARGET Boost::serialization PROPERTY
+            IMPORTED_LOCATION ${Boost_SERIALIZARION_LIBRARIES})
+    endif()
+endif()
+
 
 find_program(UNCOMPRESS_EXECUTABLE uncompress
     PATHS /bin
@@ -34,32 +44,45 @@ find_program(UNCOMPRESS_EXECUTABLE uncompress
     /usr/sbin
 )
 
-if(NOT UNCOMPRESS_EXECUTABLE-NOTFOUND)
-    add_definitions(-DUNCOMPRESS_EXECUTABLE="${UNCOMPRESS_EXECUTABLE}")
-else()
-    add_definitions(-DUNCOMPRESS_EXECUTABLE="")
-endif()
-
 if(Boost_FOUND)
-    include_directories(
-        ${CMAKE_SOURCE_DIR}/src/core/system_parameters
-        ${GFlags_INCLUDE_DIRS}
-        ${Boost_INCLUDE_DIRS}
-        ${GPSTK_INCLUDE_DIR}/gpstk
-        ${GPSTK_INCLUDE_DIR}
-    )
-
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated")
-
+    message(STATUS "The rinex2assist utility tool will be built when doing '${CMAKE_MAKE_PROGRAM_PRETTY_NAME}'")
     add_executable(rinex2assist ${CMAKE_CURRENT_SOURCE_DIR}/main.cc)
+    set_property(TARGET rinex2assist PROPERTY CXX_STANDARD 14)  # Required by GPSTk
+    # Do not show warnings raised by GPSTk v3.0.0
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+        target_compile_options(rinex2assist
+            PUBLIC
+                -Wno-deprecated -Wno-unused-parameter -Wno-sign-compare -Wno-type-limits -Wno-unused-but-set-variable -Wno-deprecated-copy -Wno-extra
+        )
+    endif()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+        target_compile_options(rinex2assist
+            PUBLIC
+                -Wno-deprecated -Wno-unused-parameter -Wno-sign-compare
+        )
+    endif()
 
     target_link_libraries(rinex2assist
-        ${Boost_LIBRARIES}
-        ${GPSTK_LIBRARY}
-        ${GFlags_LIBS}
-        gnss_sp_libs
-        gnss_rx
+        PUBLIC
+            Boost::iostreams
+            Boost::serialization
+            ${GPSTK_LIBRARY}
+            Gflags::gflags
+            Threads::Threads
+            core_system_parameters
     )
+
+    target_include_directories(rinex2assist
+        PUBLIC
+            ${GPSTK_INCLUDE_DIR}/gpstk
+            ${GPSTK_INCLUDE_DIR}
+    )
+
+    if(NOT UNCOMPRESS_EXECUTABLE-NOTFOUND)
+        target_compile_definitions(rinex2assist PUBLIC -DUNCOMPRESS_EXECUTABLE="${UNCOMPRESS_EXECUTABLE}")
+    else()
+        target_compile_definitions(rinex2assist PUBLIC -DUNCOMPRESS_EXECUTABLE="")
+    endif()
 
     if(NOT GPSTK_FOUND OR ENABLE_OWN_GPSTK)
         add_dependencies(rinex2assist gpstk-${GNSSSDR_GPSTK_LOCAL_VERSION})
@@ -76,5 +99,17 @@ if(Boost_FOUND)
     )
 else()
     message(STATUS "Boost Iostreams library not found.")
-    message(STATUS "rinex2assist will not be built.")
+    message(STATUS " The rinex2assist utility tool will not be built.")
+    if(${CMAKE_SYSTEM_NAME} MATCHES "Linux|kFreeBSD|GNU")
+        message(STATUS " You can install the Boost Iostreams library by doing:")
+        if(${LINUX_DISTRIBUTION} MATCHES "Fedora" OR ${LINUX_DISTRIBUTION} MATCHES "Red Hat")
+            message(STATUS " sudo yum install boost-iostreams")
+        elseif(${LINUX_DISTRIBUTION} MATCHES "openSUSE")
+            message(STATUS " sudo zypper install libboost_iostreams-devel")
+        else()
+            message(STATUS " sudo apt-get install libboost-iostreams-dev")
+        endif()
+    endif()
 endif()
+
+set(Boost_FOUND TRUE)  # trick for summary report

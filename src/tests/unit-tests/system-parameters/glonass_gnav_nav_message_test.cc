@@ -8,25 +8,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -126,7 +115,7 @@ TEST(GlonassGnavNavigationMessageTest, String2Decoder)
 
     // Fill out ephemeris values for truth
     gnav_ephemeris.d_B_n = 0;
-    gnav_ephemeris.d_P_2 = 1;
+    gnav_ephemeris.d_P_2 = true;
     gnav_ephemeris.d_t_b = 8100;
     gnav_ephemeris.d_VYn = -2.69022750854492;
     gnav_ephemeris.d_AYn = 0;
@@ -162,10 +151,10 @@ TEST(GlonassGnavNavigationMessageTest, String3Decoder)
     Glonass_Gnav_Ephemeris gnav_ephemeris;
 
     // Fill out ephemeris values for truth
-    gnav_ephemeris.d_P_3 = 1;
+    gnav_ephemeris.d_P_3 = true;
     gnav_ephemeris.d_gamma_n = 1.81898940354586e-12;
     gnav_ephemeris.d_P = 3;
-    gnav_ephemeris.d_l3rd_n = 0;
+    gnav_ephemeris.d_l3rd_n = false;
     gnav_ephemeris.d_VZn = -1.82016849517822;
     gnav_ephemeris.d_AZn = -2.79396772384644e-09;
     gnav_ephemeris.d_Zn = 19929.2377929688;
@@ -203,7 +192,7 @@ TEST(GlonassGnavNavigationMessageTest, String4Decoder)
     gnav_ephemeris.d_tau_n = -8.30907374620438e-05;
     gnav_ephemeris.d_Delta_tau_n = 9.31322574615479e-10;
     gnav_ephemeris.d_E_n = 0;
-    gnav_ephemeris.d_P_4 = 0;
+    gnav_ephemeris.d_P_4 = false;
     gnav_ephemeris.d_F_T = 6;
     gnav_ephemeris.d_N_T = 268;
     gnav_ephemeris.d_n = 21;

@@ -7,30 +7,20 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2012-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2012-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
 
 
+#include "concurrent_queue.h"
 #include "glonass_l1_ca_dll_pll_c_aid_tracking.h"
 #include "gnss_block_factory.h"
 #include "gnss_block_interface.h"
@@ -38,24 +28,18 @@
 #include "gnss_synchro.h"
 #include "in_memory_configuration.h"
 #include "tracking_interface.h"
-#include <gnuradio/analog/sig_source_waveform.h>
 #include <gnuradio/blocks/file_source.h>
 #include <gnuradio/blocks/null_sink.h>
 #include <gnuradio/blocks/skiphead.h>
-#include <gnuradio/msg_queue.h>
 #include <gnuradio/top_block.h>
 #include <gtest/gtest.h>
 #include <chrono>
-#ifdef GR_GREATER_38
-#include <gnuradio/analog/sig_source.h>
-#else
-#include <gnuradio/analog/sig_source_c.h>
-#endif
+#include <utility>
 
 // ######## GNURADIO BLOCK MESSAGE RECEVER #########
 class GlonassL1CaDllPllCAidTrackingTest_msg_rx;
 
-typedef boost::shared_ptr<GlonassL1CaDllPllCAidTrackingTest_msg_rx> GlonassL1CaDllPllCAidTrackingTest_msg_rx_sptr;
+using GlonassL1CaDllPllCAidTrackingTest_msg_rx_sptr = boost::shared_ptr<GlonassL1CaDllPllCAidTrackingTest_msg_rx>;
 
 GlonassL1CaDllPllCAidTrackingTest_msg_rx_sptr GlonassL1CaDllPllCAidTrackingTest_msg_rx_make();
 
@@ -80,7 +64,7 @@ void GlonassL1CaDllPllCAidTrackingTest_msg_rx::msg_handler_events(pmt::pmt_t msg
 {
     try
         {
-            int64_t message = pmt::to_long(msg);
+            int64_t message = pmt::to_long(std::move(msg));
             rx_message = message;
         }
     catch (boost::bad_any_cast& e)
@@ -97,9 +81,7 @@ GlonassL1CaDllPllCAidTrackingTest_msg_rx::GlonassL1CaDllPllCAidTrackingTest_msg_
     rx_message = 0;
 }
 
-GlonassL1CaDllPllCAidTrackingTest_msg_rx::~GlonassL1CaDllPllCAidTrackingTest_msg_rx()
-{
-}
+GlonassL1CaDllPllCAidTrackingTest_msg_rx::~GlonassL1CaDllPllCAidTrackingTest_msg_rx() = default;
 
 
 // ###########################################################
@@ -116,13 +98,11 @@ protected:
         gnss_synchro = Gnss_Synchro();
     }
 
-    ~GlonassL1CaDllPllCAidTrackingTest()
-    {
-    }
+    ~GlonassL1CaDllPllCAidTrackingTest() = default;
 
     void init();
 
-    gr::msg_queue::sptr queue;
+    std::shared_ptr<Concurrent_Queue<pmt::pmt_t>> queue;
     gr::top_block_sptr top_block;
     std::shared_ptr<GNSSBlockFactory> factory;
     std::shared_ptr<InMemoryConfiguration> config;
@@ -159,7 +139,7 @@ TEST_F(GlonassL1CaDllPllCAidTrackingTest, ValidationOfResults)
     int nsamples = fs_in * 4e-3 * 2;
 
     init();
-    queue = gr::msg_queue::make(0);
+    queue = std::make_shared<Concurrent_Queue<pmt::pmt_t>>();
     top_block = gr::make_top_block("Tracking test");
     std::shared_ptr<TrackingInterface> tracking = std::make_shared<GlonassL1CaDllPllCAidTracking>(config.get(), "Tracking_1G", 1, 1);
     boost::shared_ptr<GlonassL1CaDllPllCAidTrackingTest_msg_rx> msg_rx = GlonassL1CaDllPllCAidTrackingTest_msg_rx_make();
@@ -182,7 +162,6 @@ TEST_F(GlonassL1CaDllPllCAidTrackingTest, ValidationOfResults)
     }) << "Failure connecting tracking to the top_block.";
 
     ASSERT_NO_THROW({
-        gr::analog::sig_source_c::sptr sin_source = gr::analog::sig_source_c::make(fs_in, gr::analog::GR_SIN_WAVE, 1000, 1, gr_complex(0));
         std::string path = std::string(TEST_PATH);
         std::string file = path + "signal_samples/NT1065_GLONASS_L1_20160831_fs6625e6_if0e3_4ms.bin";
         const char* file_name = file.c_str();

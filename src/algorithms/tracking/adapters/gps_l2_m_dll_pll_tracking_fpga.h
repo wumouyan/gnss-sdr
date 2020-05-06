@@ -1,9 +1,8 @@
 /*!
- * \file gps_l2_m_dll_pll_tracking.h
+ * \file gps_l2_m_dll_pll_tracking_fpga.h
  * \brief  Interface of an adapter of a DLL+PLL tracking loop block
- * for GPS L1 C/A to a TrackingInterface
- * \author Carlos Aviles, 2010. carlos.avilesr(at)googlemail.com
- *         Javier Arribas, 2011. jarribas(at)cttc.es
+ * for GPS L2C to a TrackingInterface for the FPGA
+ * \author Marc Majoral, 2019, mmajoral(at)cttc.es
  *
  * Code DLL + carrier PLL according to the algorithms described in:
  * K.Borre, D.M.Akos, N.Bertelsen, P.Rinder, and S.H.Jensen,
@@ -12,37 +11,28 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2015  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <http://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
 
-#ifndef GNSS_SDR_gps_l2_m_dll_pll_tracking_FPGA_H_
-#define GNSS_SDR_gps_l2_m_dll_pll_tracking_FPGA_H_
+#ifndef GNSS_SDR_GPS_L2_M_DLL_PLL_TRACKING_FPGA_H
+#define GNSS_SDR_GPS_L2_M_DLL_PLL_TRACKING_FPGA_H
 
-#include "tracking_interface.h"
-//#include "dll_pll_veml_tracking.h"
 #include "dll_pll_veml_tracking_fpga.h"
+#include "tracking_interface.h"
+#include <gnuradio/runtime_types.h>
+#include <cstddef>
 #include <string>
 
+class Gnss_Synchro;
 class ConfigurationInterface;
 
 /*!
@@ -63,7 +53,7 @@ public:
         return role_;
     }
 
-    //! Returns "GPS_L2_M_DLL_PLL_Tracking"
+    //! Returns "GPS_L2_M_DLL_PLL_Tracking_Fpga"
     inline std::string implementation() override
     {
         return "GPS_L2_M_DLL_PLL_Tracking_Fpga";
@@ -71,7 +61,7 @@ public:
 
     inline size_t item_size() override
     {
-        return item_size_;
+        return sizeof(int);
     }
 
     void connect(gr::top_block_sptr top_block) override;
@@ -91,15 +81,15 @@ public:
     void set_gnss_synchro(Gnss_Synchro* p_gnss_synchro) override;
 
     void start_tracking() override;
+
     /*!
      * \brief Stop running tracking
      */
     void stop_tracking() override;
 
 private:
-    //dll_pll_veml_tracking_sptr tracking_;
+    static const uint32_t NUM_PRNs = 32;
     dll_pll_veml_tracking_fpga_sptr tracking_fpga_sc;
-    size_t item_size_;
     unsigned int channel_;
     std::string role_;
     unsigned int in_streams_;
@@ -107,4 +97,4 @@ private:
     int* d_ca_codes;
 };
 
-#endif  // GNSS_SDR_gps_l2_m_dll_pll_tracking_FPGA_H_
+#endif  // GNSS_SDR_GPS_L2_M_DLL_PLL_TRACKING_FPGA_H

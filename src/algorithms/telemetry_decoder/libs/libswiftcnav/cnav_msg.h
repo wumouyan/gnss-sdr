@@ -1,5 +1,6 @@
 /*!
  * \file cnav_msg.h
+ * \brief Utilities for CNAV message manipulation of the libswiftnav library
  * \author Valeri Atamaniouk <valeri@swift-nav.com>
  *
  * -------------------------------------------------------------------------
@@ -16,22 +17,13 @@
  *
  * This file is part of GNSS-SDR.
  *
- * This file is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Lesser Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *.
  */
 
 
-#ifndef LIBSWIFTNAV_CNAV_MSG_H
-#define LIBSWIFTNAV_CNAV_MSG_H
+#ifndef GNSS_SDR_CNAV_MSG_H
+#define GNSS_SDR_CNAV_MSG_H
 
 #include "fec.h"
 #include "swift_common.h"
@@ -60,11 +52,11 @@
  */
 typedef struct
 {
-    u8 prn;                                                       /**< SV PRN. 0..31 */
-    u8 msg_id;                                                    /**< Message id. 0..31 */
-    u32 tow;                                                      /**< GPS ToW in 6-second units. Multiply to 6 to get seconds. */
-    bool alert;                                                   /**< CNAV message alert flag */
-    u8 raw_msg[GPS_L2C_V27_DECODE_BITS + GPS_L2C_V27_DELAY_BITS]; /**< RAW MSG for GNSS-SDR */
+    uint8_t prn;                                                       /**< SV PRN. 0..31 */
+    uint8_t msg_id;                                                    /**< Message id. 0..31 */
+    uint32_t tow;                                                      /**< GPS ToW in 6-second units. Multiply to 6 to get seconds. */
+    bool alert;                                                        /**< CNAV message alert flag */
+    uint8_t raw_msg[GPS_L2C_V27_DECODE_BITS + GPS_L2C_V27_DELAY_BITS]; /**< RAW MSG for GNSS-SDR */
 } cnav_msg_t;
 
 /**
@@ -112,9 +104,9 @@ void cnav_msg_decoder_init(cnav_msg_decoder_t *dec);
 bool cnav_msg_decoder_add_symbol(cnav_msg_decoder_t *dec,
     unsigned char symbol,
     cnav_msg_t *msg,
-    u32 *delay);
+    uint32_t *delay);
 
 /** \} */
 /** \} */
 
-#endif /* LIBSWIFTNAV_CNAV_MSG_H */
+#endif /* GNSS_SDR_CNAV_MSG_H_ */

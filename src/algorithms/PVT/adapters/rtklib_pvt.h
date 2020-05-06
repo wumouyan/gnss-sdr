@@ -5,52 +5,50 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
 
 
-#ifndef GNSS_SDR_RTKLIB_PVT_H_
-#define GNSS_SDR_RTKLIB_PVT_H_
+#ifndef GNSS_SDR_RTKLIB_PVT_H
+#define GNSS_SDR_RTKLIB_PVT_H
 
-#include "pvt_interface.h"
-#include "rtklib_pvt_cc.h"
-#include <string>
-
+#include "pvt_interface.h"           // for PvtInterface
+#include "rtklib.h"                  // for rtk_t
+#include "rtklib_pvt_gs.h"           // for rtklib_pvt_gs_sptr
+#include <gnuradio/gr_complex.h>     // for gr_complex
+#include <gnuradio/runtime_types.h>  // for basic_block_sptr, top_block_sptr
+#include <cstddef>                   // for size_t
+#include <ctime>                     // for time_t
+#include <map>                       // for map
+#include <string>                    // for string
 
 class ConfigurationInterface;
+class Galileo_Almanac;
+class Galileo_Ephemeris;
+class Gps_Almanac;
+class Gps_Ephemeris;
 
 /*!
  * \brief This class implements a PvtInterface for the RTKLIB PVT block
  */
-class RtklibPvt : public PvtInterface
+class Rtklib_Pvt : public PvtInterface
 {
 public:
-    RtklibPvt(ConfigurationInterface* configuration,
+    Rtklib_Pvt(ConfigurationInterface* configuration,
         const std::string& role,
         unsigned int in_streams,
         unsigned int out_streams);
 
-    virtual ~RtklibPvt();
+    virtual ~Rtklib_Pvt();
 
     inline std::string role() override
     {
@@ -93,7 +91,7 @@ public:
         time_t* UTC_time) override;
 
 private:
-    rtklib_pvt_cc_sptr pvt_;
+    rtklib_pvt_gs_sptr pvt_;
     rtk_t rtk{};
     std::string role_;
     unsigned int in_streams_;

@@ -1,63 +1,15 @@
-# Copyright (C) 2015-2018 (see AUTHORS file for a list of contributors)
+# Copyright (C) 2015-2020  (see AUTHORS file for a list of contributors)
+#
+# GNSS-SDR is a software-defined Global Navigation Satellite Systems receiver
 #
 # This file is part of GNSS-SDR.
 #
-# GNSS-SDR is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# GNSS-SDR is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+# SPDX-License-Identifier: GPL-3.0-or-later
 
 if(DEFINED __INCLUDED_VOLK_PYTHON_CMAKE)
     return()
 endif()
 set(__INCLUDED_VOLK_PYTHON_CMAKE TRUE)
-
-########################################################################
-# Setup the python interpreter:
-# This allows the user to specify a specific interpreter,
-# or finds the interpreter via the built-in cmake module.
-########################################################################
-set(VOLK_PYTHON_MIN_VERSION "2.7")
-set(VOLK_PYTHON3_MIN_VERSION "3.4")
-
-if(CMAKE_VERSION VERSION_LESS 3.12)
-    if(PYTHON_EXECUTABLE)
-        message(STATUS "User set python executable ${PYTHON_EXECUTABLE}")
-        find_package(PythonInterp ${VOLK_PYTHON_MIN_VERSION} REQUIRED)
-    else()
-        message(STATUS "PYTHON_EXECUTABLE not set - using default python2")
-        message(STATUS "Use -DPYTHON_EXECUTABLE=/path/to/python3 to build for python3.")
-        find_package(PythonInterp ${VOLK_PYTHON_MIN_VERSION})
-        if(NOT PYTHONINTERP_FOUND)
-            message(STATUS "python2 not found - using python3")
-            find_package(PythonInterp ${VOLK_PYTHON3_MIN_VERSION} REQUIRED)
-        endif()
-    endif()
-    find_package(PythonLibs ${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR} EXACT)
-else()
-    if(PYTHON_EXECUTABLE)
-        message(STATUS "User set python executable ${PYTHON_EXECUTABLE}")
-        find_package(PythonInterp ${VOLK_PYTHON_MIN_VERSION} REQUIRED)
-    else()
-        find_package(Python COMPONENTS Interpreter)
-        set(PYTHON_VERSION_MAJOR ${Python_VERSION_MAJOR})
-        set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
-    endif()
-endif()
-
-if(${PYTHON_VERSION_MAJOR} VERSION_EQUAL 3)
-    set(PYTHON3 TRUE)
-endif()
-
-
 
 ########################################################################
 # Check for the existence of a python module:
@@ -82,7 +34,7 @@ macro(VOLK_PYTHON_CHECK_MODULE_RAW desc python_code have)
 endmacro()
 
 macro(VOLK_PYTHON_CHECK_MODULE desc mod cmd have)
-    VOLK_PYTHON_CHECK_MODULE_RAW(
+    volk_python_check_module_raw(
         "${desc}" "
 #########################################
 try:
@@ -93,6 +45,62 @@ except: pass
 #########################################"
     "${have}")
 endmacro()
+
+
+########################################################################
+# Setup the python interpreter:
+# This allows the user to specify a specific interpreter,
+# or finds the interpreter via the built-in cmake module.
+########################################################################
+set(VOLK_PYTHON_MIN_VERSION "2.7")
+set(VOLK_PYTHON3_MIN_VERSION "3.4")
+
+if(CMAKE_VERSION VERSION_LESS 3.12)
+    if(PYTHON_EXECUTABLE)
+        message(STATUS "User set python executable ${PYTHON_EXECUTABLE}")
+        find_package(PythonInterp ${VOLK_PYTHON_MIN_VERSION} REQUIRED)
+    else()
+        message(STATUS "PYTHON_EXECUTABLE not set - trying by default python3")
+        message(STATUS "Use -DPYTHON_EXECUTABLE=/path/to/python to build for python 2.7")
+        set(Python_ADDITIONAL_VERSIONS 3.4 3.5 3.6 3.7 3.8 3.9)
+        find_package(PythonInterp ${VOLK_PYTHON_MIN3_VERSION})
+        if(NOT PYTHONINTERP_FOUND)
+            message(STATUS "python3 not found - trying with python2.7")
+            find_package(PythonInterp ${VOLK_PYTHON_MIN_VERSION} REQUIRED)
+        endif()
+    endif()
+else()
+    if(PYTHON_EXECUTABLE)
+        message(STATUS "User set python executable ${PYTHON_EXECUTABLE}")
+        find_package(PythonInterp ${VOLK_PYTHON_MIN_VERSION} REQUIRED)
+    else()
+        find_package(Python3 COMPONENTS Interpreter)
+        if(Python3_FOUND)
+            set(PYTHON_EXECUTABLE ${Python3_EXECUTABLE})
+            set(PYTHON_VERSION_MAJOR ${Python3_VERSION_MAJOR})
+            volk_python_check_module("mako >= 0.4.2" mako "mako.__version__ >= '0.4.2'" MAKO_FOUND)
+            volk_python_check_module("six - python 2 and 3 compatibility library" six "True" SIX_FOUND)
+        endif()
+        if(NOT Python3_FOUND OR NOT MAKO_FOUND OR NOT SIX_FOUND)
+            find_package(Python2 COMPONENTS Interpreter)
+            if(Python2_FOUND)
+                set(PYTHON_EXECUTABLE ${Python2_EXECUTABLE})
+                set(PYTHON_VERSION_MAJOR ${Python2_VERSION_MAJOR})
+                volk_python_check_module("mako >= 0.4.2" mako "mako.__version__ >= '0.4.2'" MAKO_FOUND)
+                volk_python_check_module("six - python 2 and 3 compatibility library" six "True" SIX_FOUND)
+            endif()
+            if(NOT MAKO_FOUND OR NOT SIX_FOUND)
+                unset(PYTHON_EXECUTABLE)
+                find_package(PythonInterp ${VOLK_PYTHON_MIN_VERSION})
+            endif()
+        endif()
+    endif()
+endif()
+
+if(${PYTHON_VERSION_MAJOR} VERSION_EQUAL 3)
+    set(PYTHON3 TRUE)
+endif()
+
 
 ########################################################################
 # Sets the python installation directory VOLK_PYTHON_DIR
@@ -117,7 +125,7 @@ file(TO_CMAKE_PATH ${VOLK_PYTHON_DIR} VOLK_PYTHON_DIR)
 function(VOLK_UNIQUE_TARGET desc)
     file(RELATIVE_PATH reldir ${PROJECT_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR})
     execute_process(COMMAND ${PYTHON_EXECUTABLE} -c "import re, hashlib
-unique = hashlib.md5(b'${reldir}${ARGN}').hexdigest()[:5]
+unique = hashlib.sha256(b'${reldir}${ARGN}').hexdigest()[:5]
 print(re.sub('\\W', '_', '${desc} ${reldir} ' + unique))"
     OUTPUT_VARIABLE _target OUTPUT_STRIP_TRAILING_WHITESPACE)
     add_custom_target(${_target} ALL DEPENDS ${ARGN})

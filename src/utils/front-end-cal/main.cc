@@ -6,25 +6,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -32,63 +21,73 @@
 #define FRONT_END_CAL_VERSION "0.0.1"
 #endif
 
+#include "GPS_L1_CA.h"  // for GPS_L1_CA_COD...
 #include "concurrent_map.h"
 #include "concurrent_queue.h"
+#include "configuration_interface.h"  // for Configuration...
 #include "file_configuration.h"
 #include "front_end_cal.h"
-#include "galileo_almanac.h"
-#include "galileo_ephemeris.h"
-#include "galileo_iono.h"
-#include "galileo_utc_model.h"
 #include "gnss_block_factory.h"
+#include "gnss_block_interface.h"  // for GNSSBlockInte...
 #include "gnss_sdr_flags.h"
-#include "gnss_sdr_supl_client.h"
-#include "gnss_signal.h"
 #include "gnss_synchro.h"
+#include "gps_acq_assist.h"  // for Gps_Acq_Assist
 #include "gps_almanac.h"
-#include "gps_cnav_ephemeris.h"
-#include "gps_cnav_iono.h"
 #include "gps_ephemeris.h"
 #include "gps_iono.h"
 #include "gps_l1_ca_pcps_acquisition_fine_doppler.h"
-#include "gps_navigation_message.h"
 #include "gps_utc_model.h"
-#include "sbas_ephemeris.h"
-#include <boost/exception/detail/exception_ptr.hpp>
-#include <boost/filesystem.hpp>
+#include <boost/any.hpp>  // for bad_any_cast
+#include <boost/bind.hpp>
+#include <boost/exception/exception.hpp>
 #include <boost/lexical_cast.hpp>
-#include <boost/thread.hpp>
+#include <gflags/gflags.h>
 #include <glog/logging.h>
+#include <gnuradio/block.h>  // for block
 #include <gnuradio/blocks/file_sink.h>
 #include <gnuradio/blocks/file_source.h>
 #include <gnuradio/blocks/head.h>
 #include <gnuradio/blocks/null_sink.h>
 #include <gnuradio/blocks/skiphead.h>
-#include <gnuradio/msg_queue.h>
+#include <gnuradio/gr_complex.h>     // for gr_complex
+#include <gnuradio/io_signature.h>   // for io_signature
+#include <gnuradio/runtime_types.h>  // for block_sptr
 #include <gnuradio/top_block.h>
+#include <pmt/pmt.h>        // for pmt_t, to_long
+#include <pmt/pmt_sugar.h>  // for mp
 #include <chrono>
+#include <cmath>  // for round
 #include <cstdint>
 #include <cstdlib>
 #include <ctime>  // for ctime
 #include <exception>
+#include <iostream>
+#include <map>
 #include <memory>
-#include <queue>
+#include <stdexcept>  // for logic_error
+#include <string>
+#include <thread>
 #include <utility>
 #include <vector>
 
-
-using google::LogMessage;
+#if HAS_STD_FILESYSTEM
+#include <filesystem>
+namespace fs = std::filesystem;
+#else
+#include <boost/filesystem.hpp>
+namespace fs = boost::filesystem;
+#endif
 
 DECLARE_string(log_dir);
 
-concurrent_map<Gps_Ephemeris> global_gps_ephemeris_map;
-concurrent_map<Gps_Iono> global_gps_iono_map;
-concurrent_map<Gps_Utc_Model> global_gps_utc_model_map;
-concurrent_map<Gps_Almanac> global_gps_almanac_map;
-concurrent_map<Gps_Acq_Assist> global_gps_acq_assist_map;
+Concurrent_Map<Gps_Ephemeris> global_gps_ephemeris_map;
+Concurrent_Map<Gps_Iono> global_gps_iono_map;
+Concurrent_Map<Gps_Utc_Model> global_gps_utc_model_map;
+Concurrent_Map<Gps_Almanac> global_gps_almanac_map;
+Concurrent_Map<Gps_Acq_Assist> global_gps_acq_assist_map;
 
 bool stop;
-concurrent_queue<int> channel_internal_queue;
+Concurrent_Queue<int> channel_internal_queue;
 GpsL1CaPcpsAcquisitionFineDoppler* acquisition;
 Gnss_Synchro* gnss_synchro;
 std::vector<Gnss_Synchro> gnss_sync_vector;
@@ -106,12 +105,11 @@ class FrontEndCal_msg_rx : public gr::block
 {
 private:
     friend FrontEndCal_msg_rx_sptr FrontEndCal_msg_rx_make();
-    void msg_handler_events(pmt::pmt_t msg);
+    void msg_handler_events(const pmt::pmt_t& msg);
     FrontEndCal_msg_rx();
 
 public:
     int rx_message;
-    ~FrontEndCal_msg_rx();  //!< Default destructor
 };
 
 
@@ -121,11 +119,11 @@ FrontEndCal_msg_rx_sptr FrontEndCal_msg_rx_make()
 }
 
 
-void FrontEndCal_msg_rx::msg_handler_events(pmt::pmt_t msg)
+void FrontEndCal_msg_rx::msg_handler_events(const pmt::pmt_t& msg)
 {
     try
         {
-            int64_t message = pmt::to_long(std::move(msg));
+            int64_t message = pmt::to_long(msg);
             rx_message = message;
             channel_internal_queue.push(rx_message);
         }
@@ -145,24 +143,21 @@ FrontEndCal_msg_rx::FrontEndCal_msg_rx() : gr::block("FrontEndCal_msg_rx", gr::i
 }
 
 
-FrontEndCal_msg_rx::~FrontEndCal_msg_rx() = default;
-
-
 void wait_message()
 {
     while (!stop)
         {
             int message;
             channel_internal_queue.wait_and_pop(message);
-            //std::cout<<"Acq message rx="<<message<<std::endl;
+            // std::cout<<"Acq message rx="<<message<<std::endl;
             switch (message)
                 {
                 case 1:  // Positive acq
                     gnss_sync_vector.push_back(*gnss_synchro);
-                    //acquisition->reset();
+                    // acquisition->reset();
                     break;
                 case 2:  // negative acq
-                    //acquisition->reset();
+                    // acquisition->reset();
                     break;
                 case 3:
                     stop = true;
@@ -178,9 +173,9 @@ bool front_end_capture(const std::shared_ptr<ConfigurationInterface>& configurat
 {
     gr::top_block_sptr top_block;
     GNSSBlockFactory block_factory;
-    boost::shared_ptr<gr::msg_queue> queue;
+    std::shared_ptr<Concurrent_Queue<pmt::pmt_t>> queue;
 
-    queue = gr::msg_queue::make(0);
+    queue = std::make_shared<Concurrent_Queue<pmt::pmt_t>>();
     top_block = gr::make_top_block("Acquisition test");
 
     std::shared_ptr<GNSSBlockInterface> source;
@@ -207,9 +202,9 @@ bool front_end_capture(const std::shared_ptr<ConfigurationInterface>& configurat
     gr::block_sptr sink;
     sink = gr::blocks::file_sink::make(sizeof(gr_complex), "tmp_capture.dat");
 
-    //--- Find number of samples per spreading code ---
+    // -- Find number of samples per spreading code ---
     int64_t fs_in_ = configuration->property("GNSS-SDR.internal_fs_sps", 2048000);
-    int samples_per_code = round(fs_in_ / (GPS_L1_CA_CODE_RATE_HZ / GPS_L1_CA_CODE_LENGTH_CHIPS));
+    int samples_per_code = round(fs_in_ / (GPS_L1_CA_CODE_RATE_CPS / GPS_L1_CA_CODE_LENGTH_CHIPS));
     int nsamples = samples_per_code * 50;
 
     int skip_samples = fs_in_ * 5;  // skip 5 seconds
@@ -259,7 +254,7 @@ int main(int argc, char** argv)
 {
     const std::string intro_help(
         std::string("\n RTL-SDR E4000 RF front-end center frequency and sampling rate calibration tool that uses GPS signals\n") +
-        "Copyright (C) 2010-2018 (see AUTHORS file for a list of contributors)\n" +
+        "Copyright (C) 2010-2019 (see AUTHORS file for a list of contributors)\n" +
         "This program comes with ABSOLUTELY NO WARRANTY;\n" +
         "See COPYING file to see a copy of the General Public License\n \n");
 
@@ -280,14 +275,14 @@ int main(int argc, char** argv)
         }
     else
         {
-            const boost::filesystem::path p(FLAGS_log_dir);
-            if (!boost::filesystem::exists(p))
+            const fs::path p(FLAGS_log_dir);
+            if (!fs::exists(p))
                 {
                     std::cout << "The path "
                               << FLAGS_log_dir
                               << " does not exist, attempting to create it"
                               << std::endl;
-                    boost::filesystem::create_directory(p);
+                    fs::create_directory(p);
                 }
             std::cout << "Logging with be done at "
                       << FLAGS_log_dir << std::endl;
@@ -357,7 +352,6 @@ int main(int argc, char** argv)
     int64_t fs_in_ = configuration->property("GNSS-SDR.internal_fs_sps", 2048000);
     configuration->set_property("Acquisition.max_dwells", "10");
 
-    GNSSBlockFactory block_factory;
     acquisition = new GpsL1CaPcpsAcquisitionFineDoppler(configuration.get(), "Acquisition", 1, 1);
 
     acquisition->set_channel(1);
@@ -394,14 +388,15 @@ int main(int argc, char** argv)
     // Get visible GPS satellites (positive acquisitions with Doppler measurements)
     // Compute Doppler estimations
 
-    //todo: Fix the front-end cal to support new channel internal message system (no more external queues)
+    // todo: Fix the front-end cal to support new channel internal message system (no more external queues)
     std::map<int, double> doppler_measurements_map;
     std::map<int, double> cn0_measurements_map;
 
-    boost::thread ch_thread;
+    std::thread ch_thread;
 
     // record startup time
-    std::chrono::time_point<std::chrono::system_clock> start, end;
+    std::chrono::time_point<std::chrono::system_clock> start;
+    std::chrono::time_point<std::chrono::system_clock> end;
     std::chrono::duration<double> elapsed_seconds{};
     start = std::chrono::system_clock::now();
 
@@ -417,9 +412,9 @@ int main(int argc, char** argv)
             stop = false;
             try
                 {
-                    ch_thread = boost::thread(wait_message);
+                    ch_thread = std::thread(wait_message);
                 }
-            catch (const boost::thread_resource_error& e)
+            catch (const std::exception& e)
                 {
                     LOG(INFO) << "Exception caught (thread resource error)";
                 }
@@ -457,7 +452,7 @@ int main(int argc, char** argv)
                 {
                     ch_thread.join();
                 }
-            catch (const boost::thread_resource_error& e)
+            catch (const std::exception& e)
                 {
                     LOG(INFO) << "Exception caught while joining threads.";
                 }
@@ -550,7 +545,9 @@ int main(int argc, char** argv)
                     std::cout << "  " << it.first << "   " << it.second << "   " << doppler_estimated_hz << std::endl;
                     // 7. Compute front-end IF and sampling frequency estimation
                     // Compare with the measurements and compute clock drift using FE model
-                    double estimated_fs_Hz, estimated_f_if_Hz, f_osc_err_ppm;
+                    double estimated_fs_Hz;
+                    double estimated_f_if_Hz;
+                    double f_osc_err_ppm;
                     front_end_cal.GPS_L1_front_end_model_E4000(doppler_estimated_hz, it.second, fs_in_, &estimated_fs_Hz, &estimated_f_if_Hz, &f_osc_err_ppm);
 
                     f_if_estimation_Hz_map.insert(std::pair<int, double>(it.first, estimated_f_if_Hz));
@@ -565,7 +562,7 @@ int main(int argc, char** argv)
                 {
                     std::cout << "Exception caught while reading ephemeris" << std::endl;
                 }
-            catch (int ex)
+            catch (const std::exception& ex)
                 {
                     std::cout << "  " << it.first << "   " << it.second << "  (Eph not found)" << std::endl;
                 }
@@ -614,7 +611,7 @@ int main(int argc, char** argv)
                 {
                     std::cout << "Exception caught while reading ephemeris" << std::endl;
                 }
-            catch (int ex)
+            catch (const std::exception& ex)
                 {
                     std::cout << "  " << it.first << "   " << it.second - mean_f_if_Hz << "  (Eph not found)" << std::endl;
                 }

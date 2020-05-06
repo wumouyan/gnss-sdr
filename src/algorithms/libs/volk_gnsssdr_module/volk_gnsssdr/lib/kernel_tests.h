@@ -4,25 +4,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -30,6 +19,7 @@
 
 #include "qa_utils.h"
 #include <volk_gnsssdr/volk_gnsssdr.h>
+#include <string>
 #include <vector>
 
 
@@ -97,9 +87,9 @@ std::vector<volk_gnsssdr_test_case_t> init_test_list(volk_gnsssdr_test_params_t 
     QA(VOLK_INIT_PUPP(volk_gnsssdr_16ic_x2_dotprodxnpuppet_16ic, volk_gnsssdr_16ic_x2_dot_prod_16ic_xn, test_params))
     QA(VOLK_INIT_PUPP(volk_gnsssdr_16ic_x2_rotator_dotprodxnpuppet_16ic, volk_gnsssdr_16ic_x2_rotator_dot_prod_16ic_xn, test_params_int16))
     QA(VOLK_INIT_PUPP(volk_gnsssdr_16ic_16i_rotator_dotprodxnpuppet_16ic, volk_gnsssdr_16ic_16i_rotator_dot_prod_16ic_xn, test_params_int16))
-    QA(VOLK_INIT_PUPP(volk_gnsssdr_32fc_x2_rotator_dotprodxnpuppet_32fc, volk_gnsssdr_32fc_x2_rotator_dot_prod_32fc_xn, test_params_int1))
-    QA(VOLK_INIT_PUPP(volk_gnsssdr_32fc_32f_rotator_dotprodxnpuppet_32fc, volk_gnsssdr_32fc_32f_rotator_dot_prod_32fc_xn, test_params_int1));
-    QA(VOLK_INIT_PUPP(volk_gnsssdr_32fc_32f_high_dynamic_rotator_dotprodxnpuppet_32fc, volk_gnsssdr_32fc_32f_high_dynamic_rotator_dot_prod_32fc_xn, test_params_int1));
+    QA(VOLK_INIT_PUPP(volk_gnsssdr_32fc_x2_rotator_dotprodxnpuppet_32fc, volk_gnsssdr_32fc_x2_rotator_dot_prod_32fc_xn, test_params_inacc))
+    QA(VOLK_INIT_PUPP(volk_gnsssdr_32fc_32f_rotator_dotprodxnpuppet_32fc, volk_gnsssdr_32fc_32f_rotator_dot_prod_32fc_xn, test_params_inacc));
+    QA(VOLK_INIT_PUPP(volk_gnsssdr_32fc_32f_high_dynamic_rotator_dotprodxnpuppet_32fc, volk_gnsssdr_32fc_32f_high_dynamic_rotator_dot_prod_32fc_xn, test_params_inacc));
 
     return test_cases;
 }

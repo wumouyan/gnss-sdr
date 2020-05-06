@@ -7,41 +7,19 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
 
-#include <boost/chrono.hpp>
-#include <boost/make_shared.hpp>
-#include <gnuradio/analog/sig_source_waveform.h>
-#include <gnuradio/blocks/file_source.h>
-#include <gnuradio/top_block.h>
-#include <chrono>
-#include <cstdlib>
-#ifdef GR_GREATER_38
-#include <gnuradio/analog/sig_source.h>
-#else
-#include <gnuradio/analog/sig_source_c.h>
-#endif
+#include "concurrent_queue.h"
 #include "freq_xlating_fir_filter.h"
 #include "glonass_l1_ca_pcps_acquisition.h"
 #include "gnss_block_factory.h"
@@ -49,15 +27,27 @@
 #include "gnss_sdr_valve.h"
 #include "gnss_synchro.h"
 #include "in_memory_configuration.h"
+#include <boost/make_shared.hpp>
+#include <gnuradio/analog/sig_source_waveform.h>
+#include <gnuradio/blocks/file_source.h>
 #include <gnuradio/blocks/null_sink.h>
-#include <gnuradio/msg_queue.h>
+#include <gnuradio/top_block.h>
 #include <gtest/gtest.h>
+#include <pmt/pmt.h>
+#include <chrono>
+#include <cstdlib>
+#include <utility>
+#ifdef GR_GREATER_38
+#include <gnuradio/analog/sig_source.h>
+#else
+#include <gnuradio/analog/sig_source_c.h>
+#endif
 
 
 // ######## GNURADIO BLOCK MESSAGE RECEVER #########
 class GlonassL1CaPcpsAcquisitionTest_msg_rx;
 
-typedef boost::shared_ptr<GlonassL1CaPcpsAcquisitionTest_msg_rx> GlonassL1CaPcpsAcquisitionTest_msg_rx_sptr;
+using GlonassL1CaPcpsAcquisitionTest_msg_rx_sptr = boost::shared_ptr<GlonassL1CaPcpsAcquisitionTest_msg_rx>;
 
 GlonassL1CaPcpsAcquisitionTest_msg_rx_sptr GlonassL1CaPcpsAcquisitionTest_msg_rx_make();
 
@@ -84,7 +74,7 @@ void GlonassL1CaPcpsAcquisitionTest_msg_rx::msg_handler_events(pmt::pmt_t msg)
 {
     try
         {
-            int64_t message = pmt::to_long(msg);
+            int64_t message = pmt::to_long(std::move(msg));
             rx_message = message;
         }
     catch (boost::bad_any_cast& e)
@@ -103,9 +93,7 @@ GlonassL1CaPcpsAcquisitionTest_msg_rx::GlonassL1CaPcpsAcquisitionTest_msg_rx() :
 }
 
 
-GlonassL1CaPcpsAcquisitionTest_msg_rx::~GlonassL1CaPcpsAcquisitionTest_msg_rx()
-{
-}
+GlonassL1CaPcpsAcquisitionTest_msg_rx::~GlonassL1CaPcpsAcquisitionTest_msg_rx() = default;
 
 
 // ###########################################################
@@ -121,9 +109,7 @@ protected:
         gnss_synchro = Gnss_Synchro();
     }
 
-    ~GlonassL1CaPcpsAcquisitionTest()
-    {
-    }
+    ~GlonassL1CaPcpsAcquisitionTest() = default;
 
     void init();
 
@@ -171,7 +157,7 @@ void GlonassL1CaPcpsAcquisitionTest::init()
     config->set_property("Acquisition_1G.doppler_max", "5000");
     config->set_property("Acquisition_1G.doppler_step", "500");
     config->set_property("Acquisition_1G.repeat_satellite", "false");
-    //config->set_property("Acquisition_1G.pfa", "0.0");
+    // config->set_property("Acquisition_1G.pfa", "0.0");
 }
 
 
@@ -188,7 +174,7 @@ TEST_F(GlonassL1CaPcpsAcquisitionTest, ConnectAndRun)
     int nsamples = 62314;
     std::chrono::time_point<std::chrono::system_clock> begin, end;
     std::chrono::duration<double> elapsed_seconds(0);
-    gr::msg_queue::sptr queue = gr::msg_queue::make(0);
+    std::shared_ptr<Concurrent_Queue<pmt::pmt_t>> queue = std::make_shared<Concurrent_Queue<pmt::pmt_t>>();
 
     top_block = gr::make_top_block("Acquisition test");
     init();

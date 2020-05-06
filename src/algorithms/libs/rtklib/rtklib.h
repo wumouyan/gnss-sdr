@@ -25,33 +25,12 @@
  * Copyright (C) 2017, Carles Fernandez
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * SPDX-License-Identifier: BSD-2-Clause
  *
  *----------------------------------------------------------------------------*/
 
-#ifndef GNSS_SDR_RTKLIB_H_
-#define GNSS_SDR_RTKLIB_H_
+#ifndef GNSS_SDR_RTKLIB_H
+#define GNSS_SDR_RTKLIB_H
 
 #include "MATH_CONSTANTS.h"
 #include "gnss_frequencies.h"
@@ -60,7 +39,6 @@
 #include <cmath>
 #include <cstdarg>
 #include <cstdint>
-#include <cstdio>
 #include <cstdlib>
 #include <netinet/in.h>
 #include <pthread.h>
@@ -194,12 +172,7 @@ const int NSATGLO = 0;
 const int NSYSGLO = 0;
 #endif
 
-/*
-const int MINPRNGLO = 1;                   //!<   min satellite slot number of GLONASS
-const int MAXPRNGLO = 27;                  //!<   max satellite slot number of GLONASS
-const int NSATGLO = (MAXPRNGLO - MINPRNGLO + 1); //!<   number of GLONASS satellites
-const int NSYSGLO = 1;
-*/
+
 const int MINPRNGAL = 1;                          //!<   min satellite PRN number of Galileo
 const int MAXPRNGAL = 36;                         //!<   max satellite PRN number of Galileo
 const int NSATGAL = (MAXPRNGAL - MINPRNGAL + 1);  //!<   number of Galileo satellites
@@ -221,10 +194,11 @@ const int NSATQZS = 0;
 const int NSYSQZS = 0;
 #endif
 
+#define ENABDS
 #ifdef ENABDS
-const int MINPRNBDS = 1;                         //!<   min satellite sat number of BeiDou
-const int MAXPRNBDS = 35;                        //!<   max satellite sat number of BeiDou
-const int NSATBDS = (MAXPRNBDS - MINPRNCM + 1);  //!<   number of BeiDou satellites
+const int MINPRNBDS = 1;                          //!<   min satellite sat number of BeiDou
+const int MAXPRNBDS = 37;                         //!<   max satellite sat number of BeiDou
+const int NSATBDS = (MAXPRNBDS - MINPRNBDS + 1);  //!<   number of BeiDou satellites
 const int NSYSBDS = 1;
 #else
 const int MINPRNBDS = 0;
@@ -342,7 +316,7 @@ const int POSOPT_RINEX = 3;   //!< pos option: rinex header pos
 const int MAXSTRPATH = 1024;  //!<  max length of stream path
 const int MAXSTRMSG = 1024;   //!<  max length of stream message
 
-typedef void fatalfunc_t(const char *);  //!<  fatal callback function type
+using fatalfunc_t = void(const char *);  //!<  fatal callback function type
 
 #define STR_MODE_R 0x1  /* stream mode: read */
 #define STR_MODE_W 0x2  /* stream mode: write */
@@ -582,7 +556,7 @@ typedef struct
 
 typedef struct
 {                          /* SBAS message type */
-    int week, tow;         /* receiption time */
+    int week, tow;         /* reception time */
     int prn;               /* SBAS satellite PRN number */
     unsigned char msg[29]; /* SBAS message (226bit) padded by 0 */
 } sbsmsg_t;
@@ -917,7 +891,7 @@ typedef struct
     unsigned char buff[1200];                    /* message buffer */
     unsigned int word;                           /* word buffer for rtcm 2 */
     unsigned int nmsg2[100];                     /* message count of RTCM 2 (1-99:1-99,0:other) */
-    unsigned int nmsg3[400];                     /* message count of RTCM 3 (1-299:1001-1299,300-399:2000-2099,0:ohter) */
+    unsigned int nmsg3[400];                     /* message count of RTCM 3 (1-299:1001-1299,300-399:2000-2099,0:other) */
     char opt[256];                               /* RTCM dependent options */
 } rtcm_t;
 
@@ -1305,7 +1279,7 @@ typedef struct
 } msm_h_t;
 
 
-const double chisqr[100] = {/* chi-sqr(n) (alpha=0.001) */
+const double CHISQR[100] = {/* chi-sqr(n) (alpha=0.001) */
     10.8, 13.8, 16.3, 18.5, 20.5, 22.5, 24.3, 26.1, 27.9, 29.6,
     31.3, 32.9, 34.5, 36.1, 37.7, 39.3, 40.8, 42.3, 43.8, 45.3,
     46.8, 48.3, 49.7, 51.2, 52.6, 54.1, 55.5, 56.9, 58.3, 59.7,
@@ -1318,7 +1292,7 @@ const double chisqr[100] = {/* chi-sqr(n) (alpha=0.001) */
     138, 139, 140, 142, 143, 144, 145, 147, 148, 149};
 
 
-const double lam_carr[MAXFREQ] = {/* carrier wave length (m) */
+const double LAM_CARR[MAXFREQ] = {/* carrier wave length (m) */
     SPEED_OF_LIGHT / FREQ1, SPEED_OF_LIGHT / FREQ2, SPEED_OF_LIGHT / FREQ5, SPEED_OF_LIGHT / FREQ6, SPEED_OF_LIGHT / FREQ7,
     SPEED_OF_LIGHT / FREQ8, SPEED_OF_LIGHT / FREQ9};
 
@@ -1328,9 +1302,9 @@ const int STRFMT_SP3 = 16;    /* stream format: SP3 */
 const int STRFMT_RNXCLK = 17; /* stream format: RINEX CLK */
 const int STRFMT_SBAS = 18;   /* stream format: SBAS messages */
 const int STRFMT_NMEA = 19;   /* stream format: NMEA 0183 */
-//const solopt_t solopt_default;   /* default solution output options */
+// const solopt_t solopt_default;   /* default solution output options */
 
 const int MAXSTRRTK = 8; /* max number of stream in RTK server */
 
 
-#endif
+#endif  // GNSS_SDR_RTKLIB_H

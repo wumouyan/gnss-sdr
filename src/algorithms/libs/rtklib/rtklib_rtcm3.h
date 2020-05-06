@@ -25,34 +25,13 @@
  * Copyright (C) 2017, Carles Fernandez
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * SPDX-License-Identifier: BSD-2-Clause
  *
  *
  *----------------------------------------------------------------------------*/
 
-#ifndef GNSS_SDR_RTKLIB_RTCM3_H_
-#define GNSS_SDR_RTKLIB_RTCM3_H_
+#ifndef GNSS_SDR_RTKLIB_RTCM3_H
+#define GNSS_SDR_RTKLIB_RTCM3_H
 
 #include "rtklib.h"
 
@@ -64,38 +43,38 @@ const double RANGE_MS = SPEED_OF_LIGHT * 0.001; /* range in 1 ms */
 
 
 /* ssr update intervals ------------------------------------------------------*/
-const double ssrudint[16] = {
+const double SSRUDINT[16] = {
     1, 2, 5, 10, 15, 30, 60, 120, 240, 300, 600, 900, 1800, 3600, 7200, 10800};
 
 
 /* ssr 3 and 7 signal and tracking mode ids ----------------------------------*/
-const int codes_gps[] = {
+const int CODES_GPS[] = {
     CODE_L1C, CODE_L1P, CODE_L1W, CODE_L1Y, CODE_L1M, CODE_L2C, CODE_L2D, CODE_L2S,
     CODE_L2L, CODE_L2X, CODE_L2P, CODE_L2W, CODE_L2Y, CODE_L2M, CODE_L5I, CODE_L5Q,
     CODE_L5X};
 
 
-const int codes_glo[] = {
+const int CODES_GLO[] = {
     CODE_L1C, CODE_L1P, CODE_L2C, CODE_L2P};
 
 
-const int codes_gal[] = {
+const int CODES_GAL[] = {
     CODE_L1A, CODE_L1B, CODE_L1C, CODE_L1X, CODE_L1Z, CODE_L5I, CODE_L5Q, CODE_L5X,
     CODE_L7I, CODE_L7Q, CODE_L7X, CODE_L8I, CODE_L8Q, CODE_L8X, CODE_L6A, CODE_L6B,
     CODE_L6C, CODE_L6X, CODE_L6Z};
 
 
-const int codes_qzs[] = {
+const int CODES_QZS[] = {
     CODE_L1C, CODE_L1S, CODE_L1L, CODE_L2S, CODE_L2L, CODE_L2X, CODE_L5I, CODE_L5Q,
     CODE_L5X, CODE_L6S, CODE_L6L, CODE_L6X, CODE_L1X};
 
 
-const int codes_bds[] = {
+const int CODES_BDS[] = {
     CODE_L1I, CODE_L1Q, CODE_L1X, CODE_L7I, CODE_L7Q, CODE_L7X, CODE_L6I, CODE_L6Q,
     CODE_L6X};
 
 
-const int codes_sbs[] = {
+const int CODES_SBS[] = {
     CODE_L1C, CODE_L5I, CODE_L5Q, CODE_L5X};
 
 
@@ -149,7 +128,7 @@ int decode_type1012(rtcm_t *rtcm);
 
 int decode_type1013(rtcm_t *rtcm);
 
-int decode_type1019(rtcm_t *rtcm);
+int decode_type1019(rtcm_t *rtcm, bool pre_2009_file = false);
 
 int decode_type1020(rtcm_t *rtcm);
 
@@ -187,7 +166,7 @@ int decode_type1038(rtcm_t *rtcm);
 
 int decode_type1039(rtcm_t *rtcm);
 
-int decode_type1044(rtcm_t *rtcm);
+int decode_type1044(rtcm_t *rtcm, bool pre_2009_file = false);
 
 int decode_type1045(rtcm_t *rtcm);
 

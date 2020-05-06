@@ -2,29 +2,18 @@
  * \file notch_filter_lite.cc
  * \brief Adapts a gnuradio gr_notch_filter_lite
  * \author Antonio Ramos, 2017. antonio.ramosdet(at)gmail.com
- *         
+ *
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -34,9 +23,8 @@
 #include "notch_lite_cc.h"
 #include <boost/lexical_cast.hpp>
 #include <glog/logging.h>
-#include <cmath>
+#include <algorithm>  // for max
 
-using google::LogMessage;
 
 NotchFilterLite::NotchFilterLite(ConfigurationInterface* configuration, const std::string& role,
     unsigned int in_streams, unsigned int out_streams) : role_(role), in_streams_(in_streams), out_streams_(out_streams)
@@ -97,9 +85,6 @@ NotchFilterLite::NotchFilterLite(ConfigurationInterface* configuration, const st
             LOG(ERROR) << "This implementation only supports one output stream";
         }
 }
-
-
-NotchFilterLite::~NotchFilterLite() = default;
 
 
 void NotchFilterLite::connect(gr::top_block_sptr top_block)

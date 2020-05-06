@@ -2,30 +2,19 @@
  * \file rtl_tcp_signal_source.cc
  * \brief Signal source for the Realtek RTL2832U USB dongle DVB-T receiver
  *        over TCP.
- * (see http://sdr.osmocom.org/trac/wiki/rtl-sdr for more information)
+ * (see https://osmocom.org/projects/rtl-sdr/wiki for more information)
  * \author Anthony Arnold, 2015. anthony.arnold(at)uqconnect.edu.au
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -41,17 +30,14 @@
 #include <utility>
 
 
-using google::LogMessage;
-
-
 RtlTcpSignalSource::RtlTcpSignalSource(ConfigurationInterface* configuration,
     const std::string& role,
     unsigned int in_stream,
     unsigned int out_stream,
-    boost::shared_ptr<gr::msg_queue> queue) : role_(std::move(role)),
-                                              in_stream_(in_stream),
-                                              out_stream_(out_stream),
-                                              queue_(queue)
+    std::shared_ptr<Concurrent_Queue<pmt::pmt_t>> queue) : role_(role),
+                                                           in_stream_(in_stream),
+                                                           out_stream_(out_stream),
+                                                           queue_(std::move(queue))
 {
     // DUMP PARAMETERS
     std::string empty = "";
@@ -122,7 +108,7 @@ RtlTcpSignalSource::RtlTcpSignalSource(ConfigurationInterface* configuration,
             item_size_ = sizeof(int16_t);
         }
 
-    if (samples_ != 0)
+    if (samples_ != 0ULL)
         {
             DLOG(INFO) << "Send STOP signal after " << samples_ << " samples";
             valve_ = gnss_sdr_make_valve(item_size_, samples_, queue_);
@@ -146,9 +132,6 @@ RtlTcpSignalSource::RtlTcpSignalSource(ConfigurationInterface* configuration,
 }
 
 
-RtlTcpSignalSource::~RtlTcpSignalSource() = default;
-
-
 void RtlTcpSignalSource::MakeBlock()
 {
     try
@@ -167,7 +150,7 @@ void RtlTcpSignalSource::MakeBlock()
 
 void RtlTcpSignalSource::connect(gr::top_block_sptr top_block)
 {
-    if (samples_)
+    if (samples_ != 0ULL)
         {
             top_block->connect(signal_source_, 0, valve_, 0);
             DLOG(INFO) << "connected rtl tcp source to valve";
@@ -187,7 +170,7 @@ void RtlTcpSignalSource::connect(gr::top_block_sptr top_block)
 
 void RtlTcpSignalSource::disconnect(gr::top_block_sptr top_block)
 {
-    if (samples_)
+    if (samples_ != 0ULL)
         {
             top_block->disconnect(signal_source_, 0, valve_, 0);
             if (dump_)
@@ -211,12 +194,9 @@ gr::basic_block_sptr RtlTcpSignalSource::get_left_block()
 
 gr::basic_block_sptr RtlTcpSignalSource::get_right_block()
 {
-    if (samples_ != 0)
+    if (samples_ != 0ULL)
         {
             return valve_;
         }
-    else
-        {
-            return signal_source_;
-        }
+    return signal_source_;
 }

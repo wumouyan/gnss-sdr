@@ -1,19 +1,10 @@
-# Copyright (C) 2012-2018  (see AUTHORS file for a list of contributors)
+# Copyright (C) 2012-2020  (see AUTHORS file for a list of contributors)
+#
+# GNSS-SDR is a software-defined Global Navigation Satellite Systems receiver
 #
 # This file is part of GNSS-SDR.
 #
-# GNSS-SDR is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# GNSS-SDR is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 
 
@@ -27,16 +18,6 @@ set(SIGNAL_PROCESSING_TESTING_LIB_SOURCES
     true_observables_reader.cc
 )
 
-include_directories(
-    ${CMAKE_CURRENT_SOURCE_DIR}
-    ${Boost_INCLUDE_DIRS}
-    ${GLOG_INCLUDE_DIRS}
-    ${GFlags_INCLUDE_DIRS}
-    ${MATIO_INCLUDE_DIRS}
-    ${GNURADIO_RUNTIME_INCLUDE_DIRS}
-)
-
-
 file(GLOB SIGNAL_PROCESSING_TESTING_LIB_HEADERS "*.h")
 list(SORT SIGNAL_PROCESSING_TESTING_LIB_HEADERS)
 
@@ -47,10 +28,27 @@ add_library(signal_processing_testing_lib
 
 source_group(Headers FILES ${SIGNAL_PROCESSING_TESTING_LIB_HEADERS})
 
-if(NOT MATIO_FOUND)
-    add_dependencies(signal_processing_testing_lib
-        matio-${GNSSSDR_MATIO_LOCAL_VERSION} glog-${glog_RELEASE}
-    )
-else()
-    add_dependencies(signal_processing_testing_lib glog-${glog_RELEASE})
+target_link_libraries(signal_processing_testing_lib
+    PUBLIC
+        Armadillo::armadillo
+        Gflags::gflags
+        Gnuradio::runtime
+    PRIVATE
+        Boost::headers
+        Matio::matio
+        Glog::glog
+)
+
+if(ENABLE_CLANG_TIDY)
+    if(CLANG_TIDY_EXE)
+        set_target_properties(signal_processing_testing_lib
+            PROPERTIES
+                CXX_CLANG_TIDY "${DO_CLANG_TIDY}"
+        )
+    endif()
 endif()
+
+set_property(TARGET signal_processing_testing_lib
+    APPEND PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+)

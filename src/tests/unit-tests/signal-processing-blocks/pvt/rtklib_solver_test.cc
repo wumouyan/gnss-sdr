@@ -5,25 +5,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -52,21 +41,36 @@ rtk_t configure_rtklib_options()
     configuration->set_property("rtklib_solver.elevation_mask", "0");
     configuration->set_property("rtklib_solver.iono_model", "OFF");
     configuration->set_property("rtklib_solver.trop_model", "OFF");
-    //RTKLIB PVT solver options
+    // RTKLIB PVT solver options
 
     // Settings 1
     int positioning_mode = -1;
     std::string default_pos_mode("Single");
     std::string positioning_mode_str = configuration->property(role + ".positioning_mode", default_pos_mode); /* (PMODE_XXX) see src/algorithms/libs/rtklib/rtklib.h */
-    if (positioning_mode_str.compare("Single") == 0) positioning_mode = PMODE_SINGLE;
-    if (positioning_mode_str.compare("Static") == 0) positioning_mode = PMODE_STATIC;
-    if (positioning_mode_str.compare("Kinematic") == 0) positioning_mode = PMODE_KINEMA;
-    if (positioning_mode_str.compare("PPP_Static") == 0) positioning_mode = PMODE_PPP_STATIC;
-    if (positioning_mode_str.compare("PPP_Kinematic") == 0) positioning_mode = PMODE_PPP_KINEMA;
+    if (positioning_mode_str == "Single")
+        {
+            positioning_mode = PMODE_SINGLE;
+        }
+    if (positioning_mode_str == "Static")
+        {
+            positioning_mode = PMODE_STATIC;
+        }
+    if (positioning_mode_str == "Kinematic")
+        {
+            positioning_mode = PMODE_KINEMA;
+        }
+    if (positioning_mode_str == "PPP_Static")
+        {
+            positioning_mode = PMODE_PPP_STATIC;
+        }
+    if (positioning_mode_str == "PPP_Kinematic")
+        {
+            positioning_mode = PMODE_PPP_KINEMA;
+        }
 
     if (positioning_mode == -1)
         {
-            //warn user and set the default
+            // warn user and set the default
             std::cout << "WARNING: Bad specification of positioning mode." << std::endl;
             std::cout << "positioning_mode possible values: Single / Static / Kinematic / PPP_Static / PPP_Kinematic" << std::endl;
             std::cout << "positioning_mode specified value: " << positioning_mode_str << std::endl;
@@ -84,14 +88,14 @@ rtk_t configure_rtklib_options()
     int number_of_frequencies = configuration->property(role + ".num_bands", num_bands); /* (1:L1, 2:L1+L2, 3:L1+L2+L5) */
     if ((number_of_frequencies < 1) || (number_of_frequencies > 3))
         {
-            //warn user and set the default
+            // warn user and set the default
             number_of_frequencies = num_bands;
         }
 
     double elevation_mask = configuration->property(role + ".elevation_mask", 15.0);
     if ((elevation_mask < 0.0) || (elevation_mask > 90.0))
         {
-            //warn user and set the default
+            // warn user and set the default
             LOG(WARNING) << "Erroneous Elevation Mask. Setting to default value of 15.0 degrees";
             elevation_mask = 15.0;
         }
@@ -99,7 +103,7 @@ rtk_t configure_rtklib_options()
     int dynamics_model = configuration->property(role + ".dynamics_model", 0); /*  dynamics model (0:none, 1:velocity, 2:accel) */
     if ((dynamics_model < 0) || (dynamics_model > 2))
         {
-            //warn user and set the default
+            // warn user and set the default
             LOG(WARNING) << "Erroneous Dynamics Model configuration. Setting to default value of (0:none)";
             dynamics_model = 0;
         }
@@ -107,15 +111,33 @@ rtk_t configure_rtklib_options()
     std::string default_iono_model("OFF");
     std::string iono_model_str = configuration->property(role + ".iono_model", default_iono_model); /*  (IONOOPT_XXX) see src/algorithms/libs/rtklib/rtklib.h */
     int iono_model = -1;
-    if (iono_model_str.compare("OFF") == 0) iono_model = IONOOPT_OFF;
-    if (iono_model_str.compare("Broadcast") == 0) iono_model = IONOOPT_BRDC;
-    if (iono_model_str.compare("SBAS") == 0) iono_model = IONOOPT_SBAS;
-    if (iono_model_str.compare("Iono-Free-LC") == 0) iono_model = IONOOPT_IFLC;
-    if (iono_model_str.compare("Estimate_STEC") == 0) iono_model = IONOOPT_EST;
-    if (iono_model_str.compare("IONEX") == 0) iono_model = IONOOPT_TEC;
+    if (iono_model_str == "OFF")
+        {
+            iono_model = IONOOPT_OFF;
+        }
+    if (iono_model_str == "Broadcast")
+        {
+            iono_model = IONOOPT_BRDC;
+        }
+    if (iono_model_str == "SBAS")
+        {
+            iono_model = IONOOPT_SBAS;
+        }
+    if (iono_model_str == "Iono-Free-LC")
+        {
+            iono_model = IONOOPT_IFLC;
+        }
+    if (iono_model_str == "Estimate_STEC")
+        {
+            iono_model = IONOOPT_EST;
+        }
+    if (iono_model_str == "IONEX")
+        {
+            iono_model = IONOOPT_TEC;
+        }
     if (iono_model == -1)
         {
-            //warn user and set the default
+            // warn user and set the default
             std::cout << "WARNING: Bad specification of ionospheric model." << std::endl;
             std::cout << "iono_model possible values: OFF / Broadcast / SBAS / Iono-Free-LC / Estimate_STEC / IONEX" << std::endl;
             std::cout << "iono_model specified value: " << iono_model_str << std::endl;
@@ -126,14 +148,29 @@ rtk_t configure_rtklib_options()
     std::string default_trop_model("OFF");
     int trop_model = -1;
     std::string trop_model_str = configuration->property(role + ".trop_model", default_trop_model); /*  (TROPOPT_XXX) see src/algorithms/libs/rtklib/rtklib.h */
-    if (trop_model_str.compare("OFF") == 0) trop_model = TROPOPT_OFF;
-    if (trop_model_str.compare("Saastamoinen") == 0) trop_model = TROPOPT_SAAS;
-    if (trop_model_str.compare("SBAS") == 0) trop_model = TROPOPT_SBAS;
-    if (trop_model_str.compare("Estimate_ZTD") == 0) trop_model = TROPOPT_EST;
-    if (trop_model_str.compare("Estimate_ZTD_Grad") == 0) trop_model = TROPOPT_ESTG;
+    if (trop_model_str == "OFF")
+        {
+            trop_model = TROPOPT_OFF;
+        }
+    if (trop_model_str == "Saastamoinen")
+        {
+            trop_model = TROPOPT_SAAS;
+        }
+    if (trop_model_str == "SBAS")
+        {
+            trop_model = TROPOPT_SBAS;
+        }
+    if (trop_model_str == "Estimate_ZTD")
+        {
+            trop_model = TROPOPT_EST;
+        }
+    if (trop_model_str == "Estimate_ZTD_Grad")
+        {
+            trop_model = TROPOPT_ESTG;
+        }
     if (trop_model == -1)
         {
-            //warn user and set the default
+            // warn user and set the default
             std::cout << "WARNING: Bad specification of tropospheric model." << std::endl;
             std::cout << "trop_model possible values: OFF / Saastamoinen / SBAS / Estimate_ZTD / Estimate_ZTD_Grad" << std::endl;
             std::cout << "trop_model specified value: " << trop_model_str << std::endl;
@@ -166,7 +203,7 @@ rtk_t configure_rtklib_options()
     int navigation_system = configuration->property(role + ".navigation_system", nsys); /* (SYS_XXX) see src/algorithms/libs/rtklib/rtklib.h */
     if ((navigation_system < 1) || (navigation_system > 255))                           /* GPS: 1   SBAS: 2   GPS+SBAS: 3 Galileo: 8  Galileo+GPS: 9 GPS+SBAS+Galileo: 11 All: 255 */
         {
-            //warn user and set the default
+            // warn user and set the default
             LOG(WARNING) << "Erroneous Navigation System. Setting to default value of (0:none)";
             navigation_system = nsys;
         }
@@ -175,14 +212,29 @@ rtk_t configure_rtklib_options()
     std::string default_gps_ar("Continuous");
     std::string integer_ambiguity_resolution_gps_str = configuration->property(role + ".AR_GPS", default_gps_ar); /* Integer Ambiguity Resolution mode for GPS (0:off,1:continuous,2:instantaneous,3:fix and hold,4:ppp-ar) */
     int integer_ambiguity_resolution_gps = -1;
-    if (integer_ambiguity_resolution_gps_str.compare("OFF") == 0) integer_ambiguity_resolution_gps = ARMODE_OFF;
-    if (integer_ambiguity_resolution_gps_str.compare("Continuous") == 0) integer_ambiguity_resolution_gps = ARMODE_CONT;
-    if (integer_ambiguity_resolution_gps_str.compare("Instantaneous") == 0) integer_ambiguity_resolution_gps = ARMODE_INST;
-    if (integer_ambiguity_resolution_gps_str.compare("Fix-and-Hold") == 0) integer_ambiguity_resolution_gps = ARMODE_FIXHOLD;
-    if (integer_ambiguity_resolution_gps_str.compare("PPP-AR") == 0) integer_ambiguity_resolution_gps = ARMODE_PPPAR;
+    if (integer_ambiguity_resolution_gps_str == "OFF")
+        {
+            integer_ambiguity_resolution_gps = ARMODE_OFF;
+        }
+    if (integer_ambiguity_resolution_gps_str == "Continuous")
+        {
+            integer_ambiguity_resolution_gps = ARMODE_CONT;
+        }
+    if (integer_ambiguity_resolution_gps_str == "Instantaneous")
+        {
+            integer_ambiguity_resolution_gps = ARMODE_INST;
+        }
+    if (integer_ambiguity_resolution_gps_str == "Fix-and-Hold")
+        {
+            integer_ambiguity_resolution_gps = ARMODE_FIXHOLD;
+        }
+    if (integer_ambiguity_resolution_gps_str == "PPP-AR")
+        {
+            integer_ambiguity_resolution_gps = ARMODE_PPPAR;
+        }
     if (integer_ambiguity_resolution_gps == -1)
         {
-            //warn user and set the default
+            // warn user and set the default
             std::cout << "WARNING: Bad specification of GPS ambiguity resolution method." << std::endl;
             std::cout << "AR_GPS possible values: OFF / Continuous / Instantaneous / Fix-and-Hold / PPP-AR" << std::endl;
             std::cout << "AR_GPS specified value: " << integer_ambiguity_resolution_gps_str << std::endl;
@@ -193,7 +245,7 @@ rtk_t configure_rtklib_options()
     int integer_ambiguity_resolution_glo = configuration->property(role + ".AR_GLO", 1); /* Integer Ambiguity Resolution mode for GLONASS (0:off,1:on,2:auto cal,3:ext cal) */
     if ((integer_ambiguity_resolution_glo < 0) || (integer_ambiguity_resolution_glo > 3))
         {
-            //warn user and set the default
+            // warn user and set the default
             LOG(WARNING) << "Erroneous Integer Ambiguity Resolution for GLONASS . Setting to default value of (1:on)";
             integer_ambiguity_resolution_glo = 1;
         }
@@ -201,7 +253,7 @@ rtk_t configure_rtklib_options()
     int integer_ambiguity_resolution_bds = configuration->property(role + ".AR_DBS", 1); /* Integer Ambiguity Resolution mode for BEIDOU (0:off,1:on) */
     if ((integer_ambiguity_resolution_bds < 0) || (integer_ambiguity_resolution_bds > 1))
         {
-            //warn user and set the default
+            // warn user and set the default
             LOG(WARNING) << "Erroneous Integer Ambiguity Resolution for BEIDOU . Setting to default value of (1:on)";
             integer_ambiguity_resolution_bds = 1;
         }
@@ -322,10 +374,10 @@ rtk_t configure_rtklib_options()
 }
 
 
-//todo: add test cases for Galileo E1, E5 and GPS L5
+// todo: add test cases for Galileo E1, E5 and GPS L5
 TEST(RTKLibSolverTest, test1)
 {
-    //test case #1: GPS L1 CA simulated with gnss-sim
+    // test case #1: GPS L1 CA simulated with gnss-sim
     std::string path = std::string(TEST_PATH);
     int nchannels = 8;
     std::string dump_filename = ".rtklib_solver_dump.dat";
@@ -333,12 +385,12 @@ TEST(RTKLibSolverTest, test1)
     bool save_to_mat = false;
     rtk_t rtk = configure_rtklib_options();
 
-    std::unique_ptr<rtklib_solver> d_ls_pvt(new rtklib_solver(nchannels, dump_filename, flag_dump_to_file, save_to_mat, rtk));
+    std::unique_ptr<Rtklib_Solver> d_ls_pvt(new Rtklib_Solver(nchannels, dump_filename, flag_dump_to_file, save_to_mat, rtk));
     d_ls_pvt->set_averaging_depth(1);
 
     // load ephemeris
     std::string eph_xml_filename = path + "data/rtklib_test/eph_GPS_L1CA_test1.xml";
-    gnss_sdr_supl_client supl_client_ephemeris_;
+    Gnss_Sdr_Supl_Client supl_client_ephemeris_;
 
     std::cout << "SUPL: Try read GPS ephemeris from XML file " << eph_xml_filename << std::endl;
     if (supl_client_ephemeris_.load_ephemeris_xml(eph_xml_filename) == true)
@@ -370,7 +422,7 @@ TEST(RTKLibSolverTest, test1)
     //    gnss_synchro_map[0] = tmp_obs;
     //    gnss_synchro_map[0].PRN = 1;
 
-    //load from xml (boost serialize)
+    // load from xml (boost serialize)
     std::string file_name = path + "data/rtklib_test/obs_test1.xml";
 
     std::ifstream ifs;
@@ -426,9 +478,9 @@ TEST(RTKLibSolverTest, test1)
                              << d_ls_pvt->get_vdop()
                              << " GDOP = " << d_ls_pvt->get_gdop() << std::endl; */
 
-                    //todo: check here the positioning error against the reference position generated with gnss-sim
-                    //reference position on in WGS84: Lat (deg), Long (deg) , H (m): 30.286502,120.032669,100
-                    arma::vec LLH = {30.286502, 120.032669, 100};  //ref position for this scenario
+                    // todo: check here the positioning error against the reference position generated with gnss-sim
+                    // reference position on in WGS84: Lat (deg), Long (deg) , H (m): 30.286502,120.032669,100
+                    arma::vec LLH = {30.286502, 120.032669, 100};  // ref position for this scenario
 
                     double error_LLH_m = great_circle_distance(LLH(0), LLH(1), d_ls_pvt->get_latitude(), d_ls_pvt->get_longitude());
                     std::cout << "Lat, Long, H error: " << d_ls_pvt->get_latitude() - LLH(0)
@@ -452,7 +504,7 @@ TEST(RTKLibSolverTest, test1)
 
                     std::cout << "3D positioning error: " << error_3d_m << " [meters]" << std::endl;
 
-                    //check results against the test tolerance
+                    // check results against the test tolerance
                     ASSERT_LT(error_3d_m, 0.2);
                     pvt_valid = true;
                 }

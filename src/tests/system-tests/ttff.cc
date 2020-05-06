@@ -7,25 +7,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -62,8 +51,8 @@ DEFINE_string(subdevice, "A:0", "USRP subdevice");
 DEFINE_string(config_file_ttff, std::string(""), "File containing the configuration parameters for the TTFF test.");
 
 // For GPS NAVIGATION (L1)
-concurrent_queue<Gps_Acq_Assist> global_gps_acq_assist_queue;
-concurrent_map<Gps_Acq_Assist> global_gps_acq_assist_map;
+Concurrent_Queue<Gps_Acq_Assist> global_gps_acq_assist_queue;
+Concurrent_Map<Gps_Acq_Assist> global_gps_acq_assist_map;
 
 std::vector<double> TTFF_v;
 
@@ -79,7 +68,7 @@ class TtffTest : public ::testing::Test
 public:
     void config_1();
     void config_2();
-    void print_TTFF_report(const std::vector<double> &ttff_v, std::shared_ptr<ConfigurationInterface> config_);
+    void print_TTFF_report(const std::vector<double> &ttff_v, const std::shared_ptr<ConfigurationInterface> &config_);
 
     std::shared_ptr<InMemoryConfiguration> config;
     std::shared_ptr<FileConfiguration> config2;
@@ -293,11 +282,10 @@ void receive_msg()
                         }
                 }
         }
-    return;
 }
 
 
-void TtffTest::print_TTFF_report(const std::vector<double> &ttff_v, std::shared_ptr<ConfigurationInterface> config_)
+void TtffTest::print_TTFF_report(const std::vector<double> &ttff_v, const std::shared_ptr<ConfigurationInterface> &config_)
 {
     std::ofstream ttff_report_file;
     std::string filename = "ttff_report";
@@ -385,10 +373,13 @@ void TtffTest::print_TTFF_report(const std::vector<double> &ttff_v, std::shared_
             stm << "Disabled." << std::endl;
         }
     stm << "Valid measurements (" << ttff.size() << "/" << FLAGS_num_measurements << "): ";
-    for (double ttff_ : ttff) stm << ttff_ << " ";
+    for (double ttff_ : ttff)
+        {
+            stm << ttff_ << " ";
+        }
     stm << std::endl;
     stm << "TTFF mean: " << mean << " [s]" << std::endl;
-    if (ttff.size() > 0)
+    if (!ttff.empty())
         {
             stm << "TTFF max: " << *max_ttff << " [s]" << std::endl;
             stm << "TTFF min: " << *min_ttff << " [s]" << std::endl;
@@ -447,7 +438,8 @@ TEST_F(TtffTest /*unused*/, ColdStart /*unused*/)
 
             // record startup time
             std::cout << "Starting measurement " << num_measurements + 1 << " / " << FLAGS_num_measurements << std::endl;
-            std::chrono::time_point<std::chrono::system_clock> start, end;
+            std::chrono::time_point<std::chrono::system_clock> start;
+            std::chrono::time_point<std::chrono::system_clock> end;
             start = std::chrono::system_clock::now();
             // start receiver
             try
@@ -496,7 +488,7 @@ TEST_F(TtffTest /*unused*/, ColdStart /*unused*/)
         {
             print_TTFF_report(TTFF_v, config2);
         }
-    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(5));  //let the USRP some time to rest before the next test
+    std::this_thread::sleep_until(std::chrono::system_clock::now() + std::chrono::seconds(5));  // let the USRP some time to rest before the next test
 }
 
 
@@ -530,7 +522,8 @@ TEST_F(TtffTest /*unused*/, HotStart /*unused*/)
                 }
             // record startup time
             std::cout << "Starting measurement " << num_measurements + 1 << " / " << FLAGS_num_measurements << std::endl;
-            std::chrono::time_point<std::chrono::system_clock> start, end;
+            std::chrono::time_point<std::chrono::system_clock> start;
+            std::chrono::time_point<std::chrono::system_clock> end;
             start = std::chrono::system_clock::now();
 
             // start receiver
@@ -629,7 +622,7 @@ int main(int argc, char **argv)
     msgsend_size = sizeof(msg.ttff);
     msgsnd(sysv_msqid, &msg, msgsend_size, IPC_NOWAIT);
     receive_msg_thread.join();
-    msgctl(sysv_msqid, IPC_RMID, NULL);
+    msgctl(sysv_msqid, IPC_RMID, nullptr);
 
     google::ShutDownCommandLineFlags();
     return res;

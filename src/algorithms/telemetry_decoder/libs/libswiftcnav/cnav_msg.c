@@ -16,24 +16,14 @@
  *
  * This file is part of GNSS-SDR.
  *
- * This file is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation, version 3.
- *
- * This program is distributed in the hope that it will be useful, but
- * WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Lesser Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: LGPL-3.0-only
+ *.
  */
 
 
-#include "edc.h"
-#include "bits.h"
 #include "cnav_msg.h"
-
+#include "bits.h"
+#include "edc.h"
 #include <limits.h>
 #include <string.h>
 
@@ -56,9 +46,9 @@
  */
 
 /** GPS L2C preamble */
-const u32 GPS_CNAV_PREAMBLE1 = 0x8Bu; /* (0b10001011u) */
+const uint32_t GPS_CNAV_PREAMBLE1 = 0x8BU; /* (0b10001011u) */
 /** Inverted GPS L2C preamble */
-const u32 GPS_CNAV_PREAMBLE2 = 0x74u; /* (0b01110100u) */
+const uint32_t GPS_CNAV_PREAMBLE2 = 0x74U; /* (0b01110100u) */
 /** GPS L2C preamble length in bits */
 #define GPS_CNAV_PREAMBLE_LENGTH (8)
 /** GPS L2C CNAV message length in bits */
@@ -81,9 +71,9 @@ const u32 GPS_CNAV_PREAMBLE2 = 0x74u; /* (0b01110100u) */
  *
  * \private
  */
-static u32 _cnav_compute_crc(cnav_v27_part_t *part)
+static uint32_t _cnav_compute_crc(cnav_v27_part_t *part)
 {
-    u32 crc = crc24q_bits(0, part->decoded, GPS_CNAV_MSG_DATA_LENGTH,
+    uint32_t crc = crc24q_bits(0, part->decoded, GPS_CNAV_MSG_DATA_LENGTH,
         part->invert);
 
     return crc;
@@ -100,13 +90,13 @@ static u32 _cnav_compute_crc(cnav_v27_part_t *part)
  *
  * \private
  */
-static u32 _cnav_extract_crc(const cnav_v27_part_t *part)
+static uint32_t _cnav_extract_crc(const cnav_v27_part_t *part)
 {
-    u32 crc = getbitu(part->decoded, GPS_CNAV_MSG_DATA_LENGTH,
+    uint32_t crc = getbitu(part->decoded, GPS_CNAV_MSG_DATA_LENGTH,
         GPS_CNAV_MSG_CRC_LENGTH);
     if (part->invert)
         {
-            crc ^= 0xFFFFFF;
+            crc ^= 0xFFFFFFU;
         }
     return crc;
 }
@@ -136,7 +126,7 @@ static void _cnav_rescan_preamble(cnav_v27_part_t *part)
             size_t j = 0;
             for (i = 1, j = part->n_decoded - GPS_CNAV_PREAMBLE_LENGTH; i < j; ++i)
                 {
-                    u32 c = getbitu(part->decoded, i, GPS_CNAV_PREAMBLE_LENGTH);
+                    uint32_t c = getbitu(part->decoded, i, GPS_CNAV_PREAMBLE_LENGTH);
                     if (GPS_CNAV_PREAMBLE1 == c || GPS_CNAV_PREAMBLE2 == c)
                         {
                             part->preamble_seen = true;
@@ -171,7 +161,7 @@ static void _cnav_rescan_preamble(cnav_v27_part_t *part)
  *
  * \private
  */
-static void _cnav_add_symbol(cnav_v27_part_t *part, u8 ch)
+static void _cnav_add_symbol(cnav_v27_part_t *part, uint8_t ch)
 {
     part->symbols[part->n_symbols++] = ch;
 
@@ -240,8 +230,8 @@ static void _cnav_add_symbol(cnav_v27_part_t *part, u8 ch)
                 {
                     /* We have collected 300 bits starting from message preamble. Now try
                      * to compute CRC-24Q */
-                    u32 crc = _cnav_compute_crc(part);
-                    u32 crc2 = _cnav_extract_crc(part);
+                    uint32_t crc = _cnav_compute_crc(part);
+                    uint32_t crc2 = _cnav_extract_crc(part);
 
                     if (part->message_lock)
                         {
@@ -307,7 +297,7 @@ static void _cnav_msg_invert(cnav_v27_part_t *part)
     size_t i = 0;
     for (i = 0; i < sizeof(part->decoded); i++)
         {
-            part->decoded[i] ^= 0xFFu;
+            part->decoded[i] ^= 0xFFU;
         }
 }
 
@@ -332,7 +322,7 @@ static void _cnav_msg_invert(cnav_v27_part_t *part)
  *
  * \private
  */
-static bool _cnav_msg_decode(cnav_v27_part_t *part, cnav_msg_t *msg, u32 *delay)
+static bool _cnav_msg_decode(cnav_v27_part_t *part, cnav_msg_t *msg, uint32_t *delay)
 {
     bool res = false;
     if (GPS_CNAV_MSG_LENGTH <= part->n_decoded)
@@ -425,9 +415,9 @@ void cnav_msg_decoder_init(cnav_msg_decoder_t *dec)
  * \retval false More data is required.
  */
 bool cnav_msg_decoder_add_symbol(cnav_msg_decoder_t *dec,
-    u8 symbol,
+    uint8_t symbol,
     cnav_msg_t *msg,
-    u32 *pdelay)
+    uint32_t *pdelay)
 {
     _cnav_add_symbol(&dec->part1, symbol);
     _cnav_add_symbol(&dec->part2, symbol);

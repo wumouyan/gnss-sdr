@@ -1,22 +1,11 @@
 #
-# Copyright (C) 2010-2018 (see AUTHORS file for a list of contributors)
+# Copyright (C) 2010-2020  (see AUTHORS file for a list of contributors)
+#
+# GNSS-SDR is a software-defined Global Navigation Satellite Systems receiver
 #
 # This file is part of GNSS-SDR.
 #
-# GNSS-SDR is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation; either version 3, or (at your option)
-# any later version.
-#
-# GNU Radio is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with GNU Radio; see the file COPYING.  If not, write to
-# the Free Software Foundation, Inc., 51 Franklin Street,
-# Boston, MA 02110-1301, USA.
+# SPDX-License-Identifier: GPL-3.0-or-later
 #
 from __future__ import print_function
 
@@ -28,13 +17,12 @@ class volk_gnsssdr_modtool(object):
     def __init__(self, cfg):
         self.volk_gnsssdr = re.compile('volk_gnsssdr');
         self.remove_after_underscore = re.compile("_.*");
-        self.volk_gnsssdr_run_tests = re.compile('^\s*VOLK_RUN_TESTS.*\n', re.MULTILINE);
-        self.volk_gnsssdr_profile = re.compile('^\s*(VOLK_PROFILE|VOLK_PUPPET_PROFILE).*\n', re.MULTILINE);
+        self.volk_gnsssdr_profile = re.compile(r'^\s*(VOLK_PROFILE|VOLK_PUPPET_PROFILE).*\n', re.MULTILINE);
         self.my_dict = cfg;
-        self.lastline = re.compile('\s*char path\[1024\];.*');
-        self.badassert = re.compile('^\s*assert\(toked\[0\] == "volk_gnsssdr_.*\n', re.MULTILINE);
+        self.lastline = re.compile(r'\s*char path\[1024\];.*');
+        self.badassert = re.compile(r'^\s*assert\(toked\[0\] == "volk_gnsssdr_.*\n', re.MULTILINE);
         self.goodassert = '    assert(toked[0] == "volk_gnsssdr");\n'
-        self.baderase = re.compile('^\s*toked.erase\(toked.begin\(\)\);.*\n', re.MULTILINE);
+        self.baderase = re.compile(r'^\s*toked.erase\(toked.begin\(\)\);.*\n', re.MULTILINE);
         self.gooderase = '    toked.erase(toked.begin());\n    toked.erase(toked.begin());\n';
 
     def get_basename(self, base=None):
@@ -65,7 +53,7 @@ class volk_gnsssdr_modtool(object):
 
         for line in hdr_files:
 
-            subline = re.search(".*\.h.*", os.path.basename(line))
+            subline = re.search(r".*\.h.*", os.path.basename(line))
             if subline:
                 subsubline = begins.search(subline.group(0));
                 if subsubline:
@@ -81,7 +69,7 @@ class volk_gnsssdr_modtool(object):
             for dt in datatypes:
                 if dt in line:
                     #subline = re.search("(?<=volk_gnsssdr_)" + dt + ".*(?=\.h)", line);
-                    subline = re.search(begins.pattern[:-2] + dt + ".*(?=\.h)", line);
+                    subline = re.search(begins.pattern[:-2] + dt + r".*(?=\.h)", line);
                     if subline:
                         functions.append(subline.group(0));
 
@@ -188,8 +176,8 @@ class volk_gnsssdr_modtool(object):
         inpath = os.path.abspath(base);
         kernel = re.compile(name)
         search_kernels = set([kernel])
-        profile = re.compile('^\s*VOLK_PROFILE')
-        puppet = re.compile('^\s*VOLK_PUPPET')
+        profile = re.compile(r'^\s*VOLK_PROFILE')
+        puppet = re.compile(r'^\s*VOLK_PUPPET')
         src_dest = os.path.join(inpath, 'apps/', top[:-1] + '_profile.cc');
         infile = open(src_dest);
         otherlines = infile.readlines();
@@ -257,8 +245,8 @@ class volk_gnsssdr_modtool(object):
         kernel = re.compile(name)
         search_kernels = set([kernel])
 
-        profile = re.compile('^\s*VOLK_PROFILE')
-        puppet = re.compile('^\s*VOLK_PUPPET')
+        profile = re.compile(r'^\s*VOLK_PROFILE')
+        puppet = re.compile(r'^\s*VOLK_PUPPET')
         infile = open(os.path.join(inpath, 'apps/', oldvolk_gnsssdr.pattern + '_profile.cc'));
         otherinfile = open(os.path.join(self.my_dict['destination'], 'volk_gnsssdr_' + self.my_dict['name'], 'apps/volk_gnsssdr_' + self.my_dict['name'] + '_profile.cc'));
         dest = os.path.join(self.my_dict['destination'], 'volk_gnsssdr_' + self.my_dict['name'], 'apps/volk_gnsssdr_' + self.my_dict['name'] + '_profile.cc');

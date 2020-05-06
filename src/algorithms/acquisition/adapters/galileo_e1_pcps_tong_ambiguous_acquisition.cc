@@ -6,25 +6,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -36,8 +25,7 @@
 #include "gnss_sdr_flags.h"
 #include <boost/math/distributions/exponential.hpp>
 #include <glog/logging.h>
-
-using google::LogMessage;
+#include <algorithm>
 
 
 GalileoE1PcpsTongAmbiguousAcquisition::GalileoE1PcpsTongAmbiguousAcquisition(
@@ -61,7 +49,10 @@ GalileoE1PcpsTongAmbiguousAcquisition::GalileoE1PcpsTongAmbiguousAcquisition(
     fs_in_ = configuration_->property("GNSS-SDR.internal_fs_sps", fs_in_deprecated);
     dump_ = configuration_->property(role + ".dump", false);
     doppler_max_ = configuration_->property(role + ".doppler_max", 5000);
-    if (FLAGS_doppler_max != 0) doppler_max_ = FLAGS_doppler_max;
+    if (FLAGS_doppler_max != 0)
+        {
+            doppler_max_ = FLAGS_doppler_max;
+        }
     sampled_ms_ = configuration_->property(role + ".coherent_integration_time_ms", 4);
 
     if (sampled_ms_ % 4 != 0)
@@ -79,16 +70,16 @@ GalileoE1PcpsTongAmbiguousAcquisition::GalileoE1PcpsTongAmbiguousAcquisition(
     dump_filename_ = configuration_->property(role + ".dump_filename",
         default_dump_filename);
 
-    //--- Find number of samples per spreading code (4 ms)  -----------------
+    // -- Find number of samples per spreading code (4 ms)  -----------------
 
     code_length_ = round(
-        fs_in_ / (Galileo_E1_CODE_CHIP_RATE_HZ / Galileo_E1_B_CODE_LENGTH_CHIPS));
+        fs_in_ / (GALILEO_E1_CODE_CHIP_RATE_CPS / GALILEO_E1_B_CODE_LENGTH_CHIPS));
 
     vector_length_ = code_length_ * static_cast<int>(sampled_ms_ / 4);
 
     int samples_per_ms = code_length_ / 4;
 
-    code_ = new gr_complex[vector_length_];
+    code_ = std::vector<std::complex<float>>(vector_length_);
 
     if (item_type_ == "gr_complex")
         {
@@ -113,6 +104,7 @@ GalileoE1PcpsTongAmbiguousAcquisition::GalileoE1PcpsTongAmbiguousAcquisition(
     threshold_ = 0.0;
     doppler_step_ = 0;
     gnss_synchro_ = nullptr;
+
     if (in_streams_ > 1)
         {
             LOG(ERROR) << "This implementation only supports one input stream";
@@ -124,24 +116,8 @@ GalileoE1PcpsTongAmbiguousAcquisition::GalileoE1PcpsTongAmbiguousAcquisition(
 }
 
 
-GalileoE1PcpsTongAmbiguousAcquisition::~GalileoE1PcpsTongAmbiguousAcquisition()
-{
-    delete[] code_;
-}
-
-
 void GalileoE1PcpsTongAmbiguousAcquisition::stop_acquisition()
 {
-}
-
-
-void GalileoE1PcpsTongAmbiguousAcquisition::set_channel(unsigned int channel)
-{
-    channel_ = channel;
-    if (item_type_ == "gr_complex")
-        {
-            acquisition_cc_->set_channel(channel_);
-        }
 }
 
 
@@ -149,7 +125,10 @@ void GalileoE1PcpsTongAmbiguousAcquisition::set_threshold(float threshold)
 {
     float pfa = configuration_->property(role_ + std::to_string(channel_) + ".pfa", 0.0);
 
-    if (pfa == 0.0) pfa = configuration_->property(role_ + ".pfa", 0.0);
+    if (pfa == 0.0)
+        {
+            pfa = configuration_->property(role_ + ".pfa", 0.0);
+        }
 
     if (pfa == 0.0)
         {
@@ -214,7 +193,6 @@ signed int GalileoE1PcpsTongAmbiguousAcquisition::mag()
 void GalileoE1PcpsTongAmbiguousAcquisition::init()
 {
     acquisition_cc_->init();
-    //set_local_code();
 }
 
 
@@ -225,20 +203,21 @@ void GalileoE1PcpsTongAmbiguousAcquisition::set_local_code()
             bool cboc = configuration_->property(
                 "Acquisition" + std::to_string(channel_) + ".cboc", false);
 
-            auto* code = new std::complex<float>[code_length_];
-
-            galileo_e1_code_gen_complex_sampled(code, gnss_synchro_->Signal,
+            std::vector<std::complex<float>> code(code_length_);
+            std::array<char, 3> Signal_{};
+            Signal_[0] = gnss_synchro_->Signal[0];
+            Signal_[1] = gnss_synchro_->Signal[1];
+            Signal_[2] = '\0';
+            galileo_e1_code_gen_complex_sampled(code, Signal_,
                 cboc, gnss_synchro_->PRN, fs_in_, 0, false);
 
+            gsl::span<gr_complex> code_span(code_.data(), vector_length_);
             for (unsigned int i = 0; i < sampled_ms_ / 4; i++)
                 {
-                    memcpy(&(code_[i * code_length_]), code,
-                        sizeof(gr_complex) * code_length_);
+                    std::copy_n(code.data(), code_length_, code_span.subspan(i * code_length_, code_length_).data());
                 }
 
-            acquisition_cc_->set_local_code(code_);
-
-            delete[] code;
+            acquisition_cc_->set_local_code(code_.data());
         }
 }
 
@@ -250,6 +229,7 @@ void GalileoE1PcpsTongAmbiguousAcquisition::reset()
             acquisition_cc_->set_active(true);
         }
 }
+
 
 void GalileoE1PcpsTongAmbiguousAcquisition::set_state(int state)
 {
@@ -270,7 +250,7 @@ float GalileoE1PcpsTongAmbiguousAcquisition::calculate_threshold(float pfa)
     unsigned int ncells = vector_length_ * frequency_bins;
     double exponent = 1 / static_cast<double>(ncells);
     double val = pow(1.0 - pfa, exponent);
-    auto lambda = double(vector_length_);
+    auto lambda = static_cast<double>(vector_length_);
     boost::math::exponential_distribution<double> mydist(lambda);
     auto threshold = static_cast<float>(quantile(mydist, val));
 

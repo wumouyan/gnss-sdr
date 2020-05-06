@@ -4,29 +4,18 @@
  * \author Cillian O'Driscoll, 2015. cillian.odriscoll(at)gmail.com
  *
  * Class implementing a generic 1st, 2nd or 3rd order loop filter. Based
- * on the bilinear transform of the standard Weiner filter.
+ * on the bilinear transform of the standard Wiener filter.
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -35,7 +24,10 @@
 #include "tracking_loop_filter.h"
 #include <glog/logging.h>
 #include <cmath>
+#include <cstddef>
 
+const int MAX_LOOP_ORDER = 3;
+const int MAX_LOOP_HISTORY_LENGTH = 4;
 
 Tracking_loop_filter::Tracking_loop_filter(float update_interval,
     float noise_bandwidth,
@@ -66,16 +58,13 @@ Tracking_loop_filter::Tracking_loop_filter()
 }
 
 
-Tracking_loop_filter::~Tracking_loop_filter() = default;
-
-
 float Tracking_loop_filter::apply(float current_input)
 {
     // Now apply the filter coefficients:
     float result = 0.0;
 
-    // Hanlde the old outputs first:
-    for (unsigned int ii = 0; ii < d_output_coefficients.size(); ++ii)
+    // Handle the old outputs first:
+    for (size_t ii = 0; ii < d_output_coefficients.size(); ++ii)
         {
             result += d_output_coefficients[ii] * d_outputs[(d_current_index + ii) % MAX_LOOP_HISTORY_LENGTH];
         }
@@ -95,21 +84,18 @@ float Tracking_loop_filter::apply(float current_input)
 
     d_inputs[d_current_index] = current_input;
 
-
-    for (unsigned int ii = 0; ii < d_input_coefficients.size(); ++ii)
+    for (size_t ii = 0; ii < d_input_coefficients.size(); ++ii)
         {
             result += d_input_coefficients[ii] * d_inputs[(d_current_index + ii) % MAX_LOOP_HISTORY_LENGTH];
         }
 
-
     d_outputs[d_current_index] = result;
-
 
     return result;
 }
 
 
-void Tracking_loop_filter::update_coefficients(void)
+void Tracking_loop_filter::update_coefficients()
 {
     // Analog gains:
     float g1;
@@ -179,7 +165,6 @@ void Tracking_loop_filter::update_coefficients(void)
                     d_output_coefficients[0] = 1.0;
                 }
             break;
-
         case 3:
             wn = d_noise_bandwidth / 0.7845;  // From Kaplan
             float a3 = 1.1;
@@ -208,7 +193,6 @@ void Tracking_loop_filter::update_coefficients(void)
                     d_input_coefficients[1] = g1 * T * T / 2.0 - 2.0 * g3;
                     d_input_coefficients[2] = g3 + T / 2.0 * (-g2 + T / 2.0 * g1);
 
-
                     d_output_coefficients.resize(2);
                     d_output_coefficients[0] = 2.0;
                     d_output_coefficients[1] = -1.0;
@@ -225,7 +209,7 @@ void Tracking_loop_filter::set_noise_bandwidth(float noise_bandwidth)
 }
 
 
-float Tracking_loop_filter::get_noise_bandwidth(void) const
+float Tracking_loop_filter::get_noise_bandwidth() const
 {
     return d_noise_bandwidth;
 }
@@ -237,7 +221,8 @@ void Tracking_loop_filter::set_update_interval(float update_interval)
     update_coefficients();
 }
 
-float Tracking_loop_filter::get_update_interval(void) const
+
+float Tracking_loop_filter::get_update_interval() const
 {
     return d_update_interval;
 }
@@ -250,7 +235,7 @@ void Tracking_loop_filter::set_include_last_integrator(bool include_last_integra
 }
 
 
-bool Tracking_loop_filter::get_include_last_integrator(void) const
+bool Tracking_loop_filter::get_include_last_integrator() const
 {
     return d_include_last_integrator;
 }
@@ -260,10 +245,9 @@ void Tracking_loop_filter::set_order(int loop_order)
 {
     if (loop_order < 1 or loop_order > MAX_LOOP_ORDER)
         {
-            LOG(ERROR) << "Ignoring attempt to set loop order to " << loop_order
-                       << ". Maximum allowed order is: " << MAX_LOOP_ORDER
-                       << ". Not changing current value of " << d_loop_order;
-
+            LOG(WARNING) << "Ignoring attempt to set loop order to " << loop_order
+                         << ". Maximum allowed order is: " << MAX_LOOP_ORDER
+                         << ". Not changing current value of " << d_loop_order;
             return;
         }
 
@@ -272,7 +256,7 @@ void Tracking_loop_filter::set_order(int loop_order)
 }
 
 
-int Tracking_loop_filter::get_order(void) const
+int Tracking_loop_filter::get_order() const
 {
     return d_loop_order;
 }

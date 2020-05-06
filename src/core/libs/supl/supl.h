@@ -1,13 +1,22 @@
-/*
-** SUPL library
-**
-** Copyright (c) 2007 Tatu Mannisto <tatu a-t tajuma d-o-t com>
-** All rights reserved.
-** Redistribution and modifications are permitted subject to BSD license.
-** Modifified by Carles Fernandez <carles d-o-t fernandez a-t cttc d-o-t es>
-** to make use of the gnutls library.
-**
-*/
+/*!
+ * \file supl.h
+ * \brief SUPL library with some RRLP
+ * \author Carles Fernandez, 2017 cfernandez(at)cttc.es
+ *
+ * -------------------------------------------------------------------------
+ *
+ * Copyright (c) 2007 Tatu Mannisto <tatu a-t tajuma d-o-t com>
+ *
+ * GNSS-SDR is a software defined Global Navigation
+ *          Satellite Systems receiver
+ *
+ * This file is part of GNSS-SDR.
+ *
+ * SPDX-License-Identifier: BSD-1-Clause
+ *
+ * -------------------------------------------------------------------------
+ */
+
 
 #ifndef SUPL_H
 #define SUPL_H
@@ -191,7 +200,6 @@ typedef struct supl_rrlp_ctx_s
     int cnt_acq;
     int acq_time;
     struct supl_acquis_s acq[MAX_EPHEMERIS];
-
 } supl_assist_t;
 
 typedef struct supl_param_s
@@ -232,7 +240,6 @@ typedef struct supl_ctx_s
         void *buf;
         size_t size;
     } slp_session_id;
-
 } supl_ctx_t;
 
 int supl_ctx_new(supl_ctx_t *ctx);
@@ -243,7 +250,7 @@ void supl_set_wcdma_cell(supl_ctx_t *ctx, int mcc, int mns, int uc);
 void supl_set_gsm_cell_known(supl_ctx_t *ctx, int mcc, int mns, int lac, int ci, double lat, double lon, int uncert);
 void supl_set_server(supl_ctx_t *ctx, char *server);
 void supl_set_fd(supl_ctx_t *ctx, int fd);
-void supl_request(supl_ctx_t *ctx, int flags);
+void supl_request(supl_ctx_t *ctx, int request);
 
 int supl_get_assist(supl_ctx_t *ctx, char *server, supl_assist_t *assist);
 void supl_set_debug(FILE *log, int flags);

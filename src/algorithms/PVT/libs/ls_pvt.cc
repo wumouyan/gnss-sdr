@@ -6,25 +6,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -33,16 +22,7 @@
 #include "GPS_L1_CA.h"
 #include "geofunctions.h"
 #include <glog/logging.h>
-#include <exception>
 #include <stdexcept>
-
-
-using google::LogMessage;
-
-
-Ls_Pvt::Ls_Pvt() : Pvt_Solution()
-{
-}
 
 
 arma::vec Ls_Pvt::bancroftPos(const arma::mat& satpos, const arma::vec& obs)
@@ -95,7 +75,7 @@ arma::vec Ls_Pvt::bancroftPos(const arma::mat& satpos, const arma::vec& obs)
                         {
                             int z = B(i, 2);
                             double rho = (x - pos(0)) * (x - pos(0)) + (y - pos(1)) * (y - pos(1)) + (z - pos(2)) * (z - pos(2));
-                            traveltime = sqrt(rho) / GPS_C_m_s;
+                            traveltime = sqrt(rho) / GPS_C_M_S;
                         }
                     double angle = traveltime * 7.292115147e-5;
                     double cosa = cos(angle);
@@ -190,7 +170,7 @@ arma::vec Ls_Pvt::leastSquarePos(const arma::mat& satpos, const arma::vec& obs, 
     int nmbOfSatellites;
     nmbOfSatellites = satpos.n_cols;  // Armadillo
     arma::mat w = arma::zeros(nmbOfSatellites, nmbOfSatellites);
-    w.diag() = w_vec;  //diagonal weight matrix
+    w.diag() = w_vec;  // diagonal weight matrix
 
     arma::vec rx_pos = this->get_rx_pos();
     arma::vec pos = {rx_pos(0), rx_pos(1), rx_pos(2), 0};  // time error in METERS (time x speed)
@@ -215,25 +195,25 @@ arma::vec Ls_Pvt::leastSquarePos(const arma::mat& satpos, const arma::vec& obs, 
                 {
                     if (iter == 0)
                         {
-                            //--- Initialize variables at the first iteration --------------
-                            Rot_X = X.col(i);  //Armadillo
+                            // --- Initialize variables at the first iteration -------------
+                            Rot_X = X.col(i);  // Armadillo
                             trop = 0.0;
                         }
                     else
                         {
-                            //--- Update equations -----------------------------------------
+                            // --- Update equations ----------------------------------------
                             rho2 = (X(0, i) - pos(0)) *
                                        (X(0, i) - pos(0)) +
                                    (X(1, i) - pos(1)) *
                                        (X(1, i) - pos(1)) +
                                    (X(2, i) - pos(2)) *
                                        (X(2, i) - pos(2));
-                            traveltime = sqrt(rho2) / GPS_C_m_s;
+                            traveltime = sqrt(rho2) / GPS_C_M_S;
 
-                            //--- Correct satellite position (do to earth rotation) --------
-                            Rot_X = Ls_Pvt::rotateSatellite(traveltime, X.col(i));  //armadillo
+                            // --- Correct satellite position (do to earth rotation) -------
+                            Rot_X = Ls_Pvt::rotateSatellite(traveltime, X.col(i));  // armadillo
 
-                            //--- Find DOA and range of satellites
+                            // -- Find DOA and range of satellites
                             double* azim = nullptr;
                             double* elev = nullptr;
                             double* dist = nullptr;
@@ -241,37 +221,40 @@ arma::vec Ls_Pvt::leastSquarePos(const arma::mat& satpos, const arma::vec& obs, 
 
                             if (traveltime < 0.1 && nmbOfSatellites > 3)
                                 {
-                                    //--- Find receiver's height
+                                    // --- Find receiver's height
                                     togeod(&dphi, &dlambda, &h, 6378137.0, 298.257223563, pos(0), pos(1), pos(2));
                                     // Add troposphere correction if the receiver is below the troposphere
                                     if (h > 15000)
                                         {
-                                            //receiver is above the troposphere
+                                            // receiver is above the troposphere
                                             trop = 0.0;
                                         }
                                     else
                                         {
-                                            //--- Find delay due to troposphere (in meters)
+                                            // --- Find delay due to troposphere (in meters)
                                             Ls_Pvt::tropo(&trop, sin(*elev * GPS_PI / 180.0), h / 1000.0, 1013.0, 293.0, 50.0, 0.0, 0.0, 0.0);
-                                            if (trop > 5.0) trop = 0.0;  //check for erratic values
+                                            if (trop > 5.0)
+                                                {
+                                                    trop = 0.0;  // check for erratic values
+                                                }
                                         }
                                 }
                         }
-                    //--- Apply the corrections ----------------------------------------
+                    // --- Apply the corrections ----------------------------------------
                     omc(i) = (obs(i) - norm(Rot_X - pos.subvec(0, 2), 2) - pos(3) - trop);  // Armadillo
 
-                    //--- Construct the A matrix ---------------------------------------
-                    //Armadillo
+                    // -- Construct the A matrix ---------------------------------------
+                    // Armadillo
                     A(i, 0) = (-(Rot_X(0) - pos(0))) / obs(i);
                     A(i, 1) = (-(Rot_X(1) - pos(1))) / obs(i);
                     A(i, 2) = (-(Rot_X(2) - pos(2))) / obs(i);
                     A(i, 3) = 1.0;
                 }
 
-            //--- Find position update ---------------------------------------------
+            // -- Find position update ---------------------------------------------
             x = arma::solve(w * A, w * omc);  // Armadillo
 
-            //--- Apply position update --------------------------------------------
+            // -- Apply position update --------------------------------------------
             pos = pos + x;
             if (arma::norm(x, 2) < 1e-4)
                 {
@@ -280,9 +263,9 @@ arma::vec Ls_Pvt::leastSquarePos(const arma::mat& satpos, const arma::vec& obs, 
         }
 
     // check the consistency of the PVT solution
-    if (((fabs(pos(3)) * 1000.0) / GPS_C_m_s) > GPS_STARTOFFSET_ms * 2)
+    if (((fabs(pos(3)) * 1000.0) / GPS_C_M_S) > GPS_STARTOFFSET_MS * 2)
         {
-            LOG(WARNING) << "Receiver time offset out of range! Estimated RX Time error [s]:" << pos(3) / GPS_C_m_s;
+            LOG(WARNING) << "Receiver time offset out of range! Estimated RX Time error [s]:" << pos(3) / GPS_C_M_S;
             throw std::runtime_error("Receiver time offset out of range!");
         }
     return pos;

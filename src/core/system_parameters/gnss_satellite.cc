@@ -5,25 +5,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -47,17 +36,8 @@ Gnss_Satellite::Gnss_Satellite(const std::string& system_, uint32_t PRN_)
 }
 
 
-Gnss_Satellite::~Gnss_Satellite() = default;
-
-
 void Gnss_Satellite::reset()
 {
-    system_set = {"GPS", "Glonass", "SBAS", "Galileo", "Beidou"};
-    satelliteSystem["GPS"] = "G";
-    satelliteSystem["Glonass"] = "R";
-    satelliteSystem["SBAS"] = "S";
-    satelliteSystem["Galileo"] = "E";
-    satelliteSystem["Beidou"] = "C";
     PRN = 0;
     system = std::string("");
     block = std::string("");
@@ -69,8 +49,14 @@ std::ostream& operator<<(std::ostream& out, const Gnss_Satellite& sat)  // outpu
 {
     std::string tag;
     std::string tag2;
-    if (sat.get_system() == "Galileo") tag = "E";
-    if (sat.get_PRN() < 10) tag2 = "0";
+    if (sat.get_system() == "Galileo")
+        {
+            tag = "E";
+        }
+    if (sat.get_PRN() < 10)
+        {
+            tag2 = "0";
+        }
     out << sat.get_system() << " PRN " << tag << tag2 << sat.get_PRN() << " (Block " << sat.get_block() << ")";
     return out;
 }
@@ -83,29 +69,57 @@ bool operator==(const Gnss_Satellite& sat1, const Gnss_Satellite& sat2)
         {
             if (sat1.get_PRN() == sat2.get_PRN())
                 {
-                    equal = true;
+                    if (sat1.get_rf_link() == sat2.get_rf_link())
+                        {
+                            equal = true;
+                        }
                 }
         }
     return equal;
 }
 
-/*
-Gnss_Satellite& Gnss_Satellite::operator=(const Gnss_Satellite &rhs) {
 
+// Copy constructor
+Gnss_Satellite::Gnss_Satellite(Gnss_Satellite&& other) noexcept
+{
+    *this = other;
+}
+
+
+// Copy assignment operator
+Gnss_Satellite& Gnss_Satellite::operator=(const Gnss_Satellite& rhs)
+{
     // Only do assignment if RHS is a different object from this.
-    if (this != &rhs) {
-            // Deallocate, allocate new space, copy values...
-            const std::string system_ = rhs.get_system();
-            const uint32_t PRN_ = rhs.get_PRN();
-            const std::string block_ = rhs.get_block();
-           // const int32_t rf_link_ = 0;
-            this->set_system(system_);
-            this->set_PRN(PRN_);
-            this->set_block(system_, PRN_);
-            //this.rf_link = rf_link_;
-    }
+    if (this != &rhs)
+        {
+            this->system = rhs.system;
+            this->PRN = rhs.PRN;
+            this->block = rhs.block;
+            this->rf_link = rhs.rf_link;
+        }
     return *this;
-}*/
+}
+
+
+// Move constructor
+Gnss_Satellite::Gnss_Satellite(const Gnss_Satellite& other) noexcept
+{
+    *this = other;
+}
+
+
+// Move assignment operator
+Gnss_Satellite& Gnss_Satellite::operator=(Gnss_Satellite&& other) noexcept
+{
+    if (this != &other)
+        {
+            this->system = other.get_system();
+            this->PRN = other.get_PRN();
+            this->block = other.get_block();
+            this->rf_link = other.get_rf_link();
+        }
+    return *this;
+}
 
 
 void Gnss_Satellite::set_system(const std::string& system_)
@@ -224,6 +238,19 @@ void Gnss_Satellite::set_PRN(uint32_t PRN_)
                     PRN = PRN_;
                 }
         }
+    else if (system == "Beidou")
+        {
+            if (PRN_ < 1 or PRN_ > 63)
+                {
+                    DLOG(INFO) << "This PRN is not defined";
+                    PRN = 0;
+                }
+            else
+                {
+                    PRN = PRN_;
+                }
+        }
+
     else
         {
             DLOG(INFO) << "System " << system << " is not defined";
@@ -238,6 +265,13 @@ int32_t Gnss_Satellite::get_rf_link() const
     int32_t rf_link_;
     rf_link_ = rf_link;
     return rf_link_;
+}
+
+
+void Gnss_Satellite::set_rf_link(int32_t rf_link_)
+{
+    // Set satellite's rf link. Identifies the GLONASS Frequency Channel
+    rf_link = rf_link_;
 }
 
 
@@ -387,7 +421,7 @@ std::string Gnss_Satellite::what_block(const std::string& system_, uint32_t PRN_
     if (system_ == "Glonass")
         {
             // Info from http://www.sdcm.ru/smglo/grupglo?version=eng&site=extern
-            // See also http://www.glonass-center.ru/en/GLONASS/
+            // See also https://www.glonass-iac.ru/en/GLONASS/
             switch (PRN_)
                 {
                 case 1:
@@ -518,7 +552,7 @@ std::string Gnss_Satellite::what_block(const std::string& system_, uint32_t PRN_
         }
     if (system_ == "Galileo")
         {
-            // Check http://en.wikipedia.org/wiki/List_of_Galileo_satellites and https://www.gsc-europa.eu/system-status/Constellation-Information
+            // Check https://en.wikipedia.org/wiki/List_of_Galileo_satellites and https://www.gsc-europa.eu/system-status/Constellation-Information
             switch (PRN_)
                 {
                 case 1:
@@ -598,6 +632,117 @@ std::string Gnss_Satellite::what_block(const std::string& system_, uint32_t PRN_
                     break;
                 case 36:
                     block_ = std::string("FOC-FM19");  // Galileo Full Operational Capability (FOC) satellite FM19 / GSAT0219, launched on Jul. 25, 2018. UNDER COMMISSIONING.
+                    break;
+                default:
+                    block_ = std::string("Unknown(Simulated)");
+                }
+        }
+    if (system_ == "Beidou")
+        {
+            // Check https://en.wikipedia.org/wiki/List_of_BeiDou_satellites
+            switch (PRN_)
+                {
+                case 1:
+                    block_ = std::string("BeiDou-2 GEO01");  // GEO 140.0°E; launched 2010/01/16
+                    break;
+                case 2:
+                    block_ = std::string("BeiDou-2 GEO06");  // GEO 80°E; launched 2012/10/25
+                    break;
+                case 3:
+                    block_ = std::string("BeiDou-2 GEO07");  // GEO 110.5°E; launched 2016/06/12
+                    break;
+                case 4:
+                    block_ = std::string("BeiDou-2 GEO04");  // GEO 160.0°E; launched 2010/10/31
+                    break;
+                case 5:
+                    block_ = std::string("BeiDou-2 GEO05");  // GEO 58.75°E; launched 2012/02/24
+                    break;
+                case 6:
+                    block_ = std::string("BeiDou-2 IGSO01");  // 55° inclination IGSO 118°E; launched 2010/07/31
+                    break;
+                case 7:
+                    block_ = std::string("BeiDou-2 IGSO02");  // 55° inclination IGSO 118°E; launched 2010/12/17
+                    break;
+                case 8:
+                    block_ = std::string("BeiDou-2 IGSO03");  // 55° inclination IGSO 118°E; launched 2011/04/09
+                    break;
+                case 9:
+                    block_ = std::string("BeiDou-2 IGSO04");  // 55° inclination IGSO 95°E; launched 2011/07/27
+                    break;
+                case 10:
+                    block_ = std::string("BeiDou-2 IGSO05");  // 55° inclination IGSO 118°E; launched 2011/12/01
+                    break;
+                case 11:
+                    block_ = std::string("BeiDou-2 MEO03");  // Slot A07; launched 2012/04/29
+                    break;
+                case 12:
+                    block_ = std::string("BeiDou-2 MEO04");  // Slot A08; launched 2012/04/29
+                    break;
+                case 13:
+                    block_ = std::string("BeiDou-2 IGSO06");  // launched 2016/03/30
+                    break;
+                case 14:
+                    block_ = std::string("BeiDou-2 MEO06");  // launched 2012/09/19
+                    break;
+                case 16:
+                    block_ = std::string("BeiDou-2 IGSO07");  // launched 2018/07/10
+                    break;
+                case 19:
+                    block_ = std::string("BeiDou-3 MEO01");  // Slot B-7; launched 2017/11/05
+                    break;
+                case 20:
+                    block_ = std::string("BeiDou-3 MEO02");  // Slot B-5; launched 2017/11/05
+                    break;
+                case 21:
+                    block_ = std::string("BeiDou-3 MEO03");  // Slot B-?; launched 2018/02/12
+                    break;
+                case 22:
+                    block_ = std::string("BeiDou-3 MEO04");  // Slot B-6; launched 2018/02/12
+                    break;
+                case 23:
+                    block_ = std::string("BeiDou-3 MEO05");  // Slot C-7; launched 2018/07/29
+                    break;
+                case 24:
+                    block_ = std::string("BeiDou-3 MEO06");  // Slot C-1; launched 2018/07/29
+                    break;
+                case 25:
+                    block_ = std::string("BeiDou-3 MEO11");  // Slot C-8; launched 2018/08/24
+                    break;
+                case 26:
+                    block_ = std::string("BeiDou-3 MEO12");  // Slot C-2; launched 2018/08/24
+                    break;
+                case 27:
+                    block_ = std::string("BeiDou-3 3M3");  // Slot A-?; launched 2018/01/11
+                    break;
+                case 28:
+                    block_ = std::string("BeiDou-3 3M4");  // Slot A-?; launched 2018/01/11
+                    break;
+                case 29:
+                    block_ = std::string("BeiDou-3 3M7");  // Slot A-?; launched 2018/03/29
+                    break;
+                case 30:
+                    block_ = std::string("BeiDou-3 3M8");  // Slot A-?; launched 2018/03/29
+                    break;
+                case 32:
+                    block_ = std::string("BeiDou-3 MEO13");  // Slot B-1?; launched 2018/09/19
+                    break;
+                case 33:
+                    block_ = std::string("BeiDou-3 MEO14");  // Slot B-3; launched 2018/09/19
+                    break;
+                case 34:
+                    block_ = std::string("BeiDou-3 MEO15");  // Slot B-3; launched 2018/10/15
+                    break;
+                case 35:
+                    block_ = std::string("BeiDou-3 MEO16");  // Slot B-3; launched 2018/10/15
+                    break;
+                case 36:
+                    block_ = std::string("BeiDou-3 MEO17");  // Slot B-3; launched 2018/11/18
+                    break;
+                case 37:
+                    block_ = std::string("BeiDou-3 MEO18");  // Slot B-3; launched 2018/11/18
+                    break;
+                case 38:
+                    block_ = std::string("BeiDou-3 IGSO01");  // Slot B-3; launched 2019/04/20
                     break;
                 default:
                     block_ = std::string("Unknown(Simulated)");

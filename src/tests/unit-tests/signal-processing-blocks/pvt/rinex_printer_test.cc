@@ -5,25 +5,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2010-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2010-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -58,7 +47,10 @@ TEST(RinexPrinterTest, GalileoObsHeader)
         }
     std::string expected_str("E    4 C1B L1B D1B S1B                                      SYS / # / OBS TYPES ");
     EXPECT_EQ(0, expected_str.compare(line_aux));
-    if (remove(rp1->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp1->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
     line_aux.clear();
 
     std::shared_ptr<Rinex_Printer> rp2;
@@ -82,7 +74,10 @@ TEST(RinexPrinterTest, GalileoObsHeader)
     std::string expected_str2("E   12 C1B L1B D1B S1B C5X L5X D5X S5X C7X L7X D7X S7X      SYS / # / OBS TYPES ");
     EXPECT_EQ(0, expected_str2.compare(line_aux));
 
-    if (remove(rp2->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp2->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -113,7 +108,10 @@ TEST(RinexPrinterTest, GlonassObsHeader)
         }
     std::string expected_str("R    4 C1C L1C D1C S1C                                      SYS / # / OBS TYPES ");
     EXPECT_EQ(0, expected_str.compare(line_aux));
-    if (remove(rp1->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp1->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
     line_aux.clear();
 }
 
@@ -158,7 +156,10 @@ TEST(RinexPrinterTest, MixedObsHeader)
     std::string expected_str2("E    8 C1B L1B D1B S1B C5X L5X D5X S5X                      SYS / # / OBS TYPES ");
     EXPECT_EQ(0, expected_str.compare(line_aux));
     EXPECT_EQ(0, expected_str2.compare(line_aux2));
-    if (remove(rp1->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp1->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -202,7 +203,10 @@ TEST(RinexPrinterTest, MixedObsHeaderGpsGlo)
     std::string expected_str2("R    4 C1C L1C D1C S1C                                      SYS / # / OBS TYPES ");
     EXPECT_EQ(0, expected_str.compare(line_aux));
     EXPECT_EQ(0, expected_str2.compare(line_aux2));
-    if (remove(rp1->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp1->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -270,7 +274,10 @@ TEST(RinexPrinterTest, GalileoObsLog)
     std::string expected_str("E22  22000000.000 7         3.724 7      1534.000 7        42.000               ");
     EXPECT_EQ(0, expected_str.compare(line_aux));
 
-    if (remove(rp->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -299,10 +306,10 @@ TEST(RinexPrinterTest, GlonassObsLog)
     gs4.System = *sys.c_str();
 
     std::string sig = "1C";
-    std::memcpy((void*)gs1.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs2.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs3.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs4.Signal, sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs1.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs2.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs3.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs4.Signal), sig.c_str(), 3);
 
     gs1.PRN = 3;
     gs2.PRN = 8;
@@ -338,7 +345,10 @@ TEST(RinexPrinterTest, GlonassObsLog)
     std::string expected_str("R22  22000000.000 7         3.724 7      1534.000 7        42.000               ");
     EXPECT_EQ(0, expected_str.compare(line_aux));
 
-    if (remove(rp->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -419,7 +429,10 @@ TEST(RinexPrinterTest, GpsObsLogDualBand)
     std::string expected_str("G08  22000002.100 6         7.226 6       321.000 6        39.000  22000000.000 7         3.724 7      1534.000 7        42.000");
     EXPECT_EQ(0, expected_str.compare(line_aux));
 
-    if (remove(rp->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -500,7 +513,10 @@ TEST(RinexPrinterTest, GalileoObsLogDualBand)
     std::string expected_str("E08  22000002.100 6         7.226 6       321.000 6        39.000  22000000.000 7         3.724 7      1534.000 7        42.000");
     EXPECT_EQ(0, expected_str.compare(line_aux));
 
-    if (remove(rp->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -610,7 +626,10 @@ TEST(RinexPrinterTest, MixedObsLog)
     std::string expected_str("E16  22000000.000 7         0.127 7       -20.000 7        42.000  22000000.000 6         8.292 6      1534.000 6        41.000");
     EXPECT_EQ(0, expected_str.compare(line_aux));
 
-    if (remove(rp->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }
 
 
@@ -650,16 +669,16 @@ TEST(RinexPrinterTest, MixedObsLogGpsGlo)
     gs8.System = *sys.c_str();
 
     std::string sig = "1C";
-    std::memcpy((void*)gs1.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs2.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs3.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs4.Signal, sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs1.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs2.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs3.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs4.Signal), sig.c_str(), 3);
 
     sig = "1G";
-    std::memcpy((void*)gs5.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs6.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs7.Signal, sig.c_str(), 3);
-    std::memcpy((void*)gs8.Signal, sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs5.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs6.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs7.Signal), sig.c_str(), 3);
+    std::memcpy(reinterpret_cast<void*>(gs8.Signal), sig.c_str(), 3);
 
     gs1.PRN = 3;
     gs2.PRN = 8;
@@ -719,5 +738,8 @@ TEST(RinexPrinterTest, MixedObsLogGpsGlo)
     std::string expected_str("R16  22000000.000 6         8.292 6      1534.000 6        41.000  22000000.000 7         0.127 7       -20.000 7        42.000");
     EXPECT_EQ(0, expected_str.compare(line_aux));
 
-    if (remove(rp->obsfilename.c_str()) != 0) LOG(INFO) << "Error deleting temporary file";
+    if (remove(rp->obsfilename.c_str()) != 0)
+        {
+            LOG(INFO) << "Error deleting temporary file";
+        }
 }

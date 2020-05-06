@@ -7,25 +7,14 @@
  *
  * -------------------------------------------------------------------------
  *
- * Copyright (C) 2012-2018  (see AUTHORS file for a list of contributors)
+ * Copyright (C) 2012-2019  (see AUTHORS file for a list of contributors)
  *
  * GNSS-SDR is a software defined Global Navigation
  *          Satellite Systems receiver
  *
  * This file is part of GNSS-SDR.
  *
- * GNSS-SDR is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * GNSS-SDR is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with GNSS-SDR. If not, see <https://www.gnu.org/licenses/>.
+ * SPDX-License-Identifier: GPL-3.0-or-later
  *
  * -------------------------------------------------------------------------
  */
@@ -54,14 +43,14 @@ public:
     const int32_t KK = 7;  // Constraint Length
     int32_t mm = KK - 1;
     int32_t flag_even_word_arrived;
-    void viterbi_decoder(double *page_part_symbols, int32_t *page_part_bits, int32_t _datalength)
+    void viterbi_decoder(float *page_part_symbols, int32_t *page_part_bits, int32_t _datalength)
     {
         Viterbi(page_part_bits, out0, state0, out1, state1,
             page_part_symbols, KK, nn, _datalength);
     }
 
 
-    void deinterleaver(int32_t rows, int32_t cols, double *in, double *out)
+    void deinterleaver(int32_t rows, int32_t cols, const float *in, float *out)
     {
         for (int32_t r = 0; r < rows; r++)
             {
@@ -73,10 +62,10 @@ public:
     }
 
 
-    bool decode_INAV_word(double *page_part_symbols, int32_t frame_length)
+    bool decode_INAV_word(float *page_part_symbols, int32_t frame_length)
     {
         // 1. De-interleave
-        double *page_part_symbols_deint = static_cast<double *>(volk_gnsssdr_malloc(frame_length * sizeof(double), volk_gnsssdr_get_alignment()));
+        auto *page_part_symbols_deint = static_cast<float *>(volk_gnsssdr_malloc(frame_length * sizeof(float), volk_gnsssdr_get_alignment()));
         deinterleaver(GALILEO_INAV_INTERLEAVER_ROWS, GALILEO_INAV_INTERLEAVER_COLS, page_part_symbols, page_part_symbols_deint);
 
         // 2. Viterbi decoder
@@ -90,7 +79,7 @@ public:
                     }
             }
 
-        int32_t *page_part_bits = static_cast<int32_t *>(volk_gnsssdr_malloc((frame_length / 2) * sizeof(int32_t), volk_gnsssdr_get_alignment()));
+        auto *page_part_bits = static_cast<int32_t *>(volk_gnsssdr_malloc((frame_length / 2) * sizeof(int32_t), volk_gnsssdr_get_alignment()));
 
         const int32_t CodeLength = 240;
         int32_t DataLength = (CodeLength / nn) - mm;
@@ -119,7 +108,7 @@ public:
                 if (INAV_decoder.flag_CRC_test == true)
                     {
                         std::cout << "Galileo E1 INAV PAGE CRC correct \n";
-                        //std::cout << "Galileo E1 CRC correct on channel " << d_channel << " from satellite " << d_satellite << std::endl;
+                        // std::cout << "Galileo E1 CRC correct on channel " << d_channel << " from satellite " << d_satellite << std::endl;
                         crc_ok = true;
                     }
                 flag_even_word_arrived = 0;
@@ -134,10 +123,10 @@ public:
         return crc_ok;
     }
 
-    bool decode_FNAV_word(double *page_symbols, int32_t frame_length)
+    bool decode_FNAV_word(float *page_symbols, int32_t frame_length)
     {
         // 1. De-interleave
-        double *page_symbols_deint = static_cast<double *>(volk_gnsssdr_malloc(frame_length * sizeof(double), volk_gnsssdr_get_alignment()));
+        auto *page_symbols_deint = static_cast<float *>(volk_gnsssdr_malloc(frame_length * sizeof(float), volk_gnsssdr_get_alignment()));
         deinterleaver(GALILEO_FNAV_INTERLEAVER_ROWS, GALILEO_FNAV_INTERLEAVER_COLS, page_symbols, page_symbols_deint);
 
         // 2. Viterbi decoder
@@ -150,7 +139,7 @@ public:
                         page_symbols_deint[i] = -page_symbols_deint[i];
                     }
             }
-        int32_t *page_bits = static_cast<int32_t *>(volk_gnsssdr_malloc((frame_length / 2) * sizeof(int32_t), volk_gnsssdr_get_alignment()));
+        auto *page_bits = static_cast<int32_t *>(volk_gnsssdr_malloc((frame_length / 2) * sizeof(int32_t), volk_gnsssdr_get_alignment()));
 
         const int32_t CodeLength = 488;
         int32_t DataLength = (CodeLength / nn) - mm;
@@ -180,10 +169,7 @@ public:
                 std::cout << "Galileo E5a FNAV PAGE CRC correct \n";
                 return true;
             }
-        else
-            {
-                return false;
-            }
+        return false;
     }
 
     Galileo_FNAV_INAV_test()
@@ -218,7 +204,7 @@ TEST_F(Galileo_FNAV_INAV_test, ValidationOfResults)
     start = std::chrono::system_clock::now();
     int repetitions = 10;
     // FNAV FULLY ENCODED FRAME
-    double FNAV_frame[488] = {-1, 1, -1, -1, 1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    float FNAV_frame[488] = {-1, 1, -1, -1, 1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         1, -1, -1, 1, -1, -1, 1, 1, 1, -1, 1, -1, 1, 1, -1, 1, -1, -1, -1, -1, 1, -1, -1, 1, -1, -1, -1, -1, 1, 1, 1, 1, 1, 1,
         -1, 1, -1, 1, -1, 1, 1, -1, -1, 1, -1, 1, -1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1, 1, 1, -1, 1, -1, 1, -1,
         -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1, 1, -1, 1, -1, 1, 1, -1, 1, -1, 1, 1, -1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1, -1,
@@ -243,7 +229,7 @@ TEST_F(Galileo_FNAV_INAV_test, ValidationOfResults)
 
 
     // INAV FULLY ENCODED FRAME
-    double INAV_frame_even[240] = {-1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    float INAV_frame_even[240] = {-1, -1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, -1, -1, -1, 1, 1,
         -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, -1, -1, 1, -1, -1, -1, 1, -1,
@@ -259,7 +245,7 @@ TEST_F(Galileo_FNAV_INAV_test, ValidationOfResults)
         -1, -1, 1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 1, 1, -1, 1, 1, 1};
 
-    double INAV_frame_odd[240] = {1, -1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
+    float INAV_frame_odd[240] = {1, -1, 1, 1, 1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
         1, 1, 1, 1, -1, 1, -1, -1, 1, -1, 1, -1, -1, 1, -1, 1,
         1, 1, -1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1, -1,
         -1, -1, 1, 1, -1, 1, 1, 1, -1, 1, 1, 1, 1, -1, -1, 1,

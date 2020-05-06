@@ -25,39 +25,23 @@
  * Copyright (C) 2017, Carles Fernandez
  * All rights reserved.
  *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are
- * met:
- *
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- *
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
- * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
- * A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
- * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
- * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * SPDX-License-Identifier: BSD-2-Clause
  *
  *----------------------------------------------------------------------------*/
 
 #include "rtklib_lambda.h"
 #include "rtklib_rtkcmn.h"
+#include <cstring>
 
 /* LD factorization (Q=L'*diag(D)*L) -----------------------------------------*/
 int LD(int n, const double *Q, double *L, double *D)
 {
-    int i, j, k, info = 0;
-    double a, *A = mat(n, n);
+    int i;
+    int j;
+    int k;
+    int info = 0;
+    double a;
+    double *A = mat(n, n);
 
     memcpy(A, Q, sizeof(double) * n * n);
     for (i = n - 1; i >= 0; i--)
@@ -68,13 +52,27 @@ int LD(int n, const double *Q, double *L, double *D)
                     break;
                 }
             a = sqrt(D[i]);
-            for (j = 0; j <= i; j++) L[i + j * n] = A[i + j * n] / a;
+            for (j = 0; j <= i; j++)
+                {
+                    L[i + j * n] = A[i + j * n] / a;
+                }
             for (j = 0; j <= i - 1; j++)
-                for (k = 0; k <= j; k++) A[j + k * n] -= L[i + k * n] * L[i + j * n];
-            for (j = 0; j <= i; j++) L[i + j * n] /= L[i + i * n];
+                {
+                    for (k = 0; k <= j; k++)
+                        {
+                            A[j + k * n] -= L[i + k * n] * L[i + j * n];
+                        }
+                }
+            for (j = 0; j <= i; j++)
+                {
+                    L[i + j * n] /= L[i + i * n];
+                }
         }
     free(A);
-    if (info) fprintf(stderr, "%s : LD factorization error\n", __FILE__);
+    if (info)
+        {
+            fprintf(stderr, "%s : LD factorization error\n", __FILE__);
+        }
     return info;
 }
 
@@ -82,12 +80,19 @@ int LD(int n, const double *Q, double *L, double *D)
 /* integer gauss transformation ----------------------------------------------*/
 void gauss(int n, double *L, double *Z, int i, int j)
 {
-    int k, mu;
+    int k;
+    int mu;
 
     if ((mu = static_cast<int> ROUND_LAMBDA(L[i + j * n])) != 0)
         {
-            for (k = i; k < n; k++) L[k + n * j] -= static_cast<double>(mu) * L[k + i * n];
-            for (k = 0; k < n; k++) Z[k + n * j] -= static_cast<double>(mu) * Z[k + i * n];
+            for (k = i; k < n; k++)
+                {
+                    L[k + n * j] -= static_cast<double>(mu) * L[k + i * n];
+                }
+            for (k = 0; k < n; k++)
+                {
+                    Z[k + n * j] -= static_cast<double>(mu) * Z[k + i * n];
+                }
         }
 }
 
@@ -96,7 +101,10 @@ void gauss(int n, double *L, double *Z, int i, int j)
 void perm(int n, double *L, double *D, int j, double del, double *Z)
 {
     int k;
-    double eta, lam, a0, a1;
+    double eta;
+    double lam;
+    double a0;
+    double a1;
 
     eta = D[j] / del;
     lam = D[j + 1] * L[j + 1 + j * n] / del;
@@ -110,15 +118,23 @@ void perm(int n, double *L, double *D, int j, double del, double *Z)
             L[j + 1 + k * n] = eta * a0 + lam * a1;
         }
     L[j + 1 + j * n] = lam;
-    for (k = j + 2; k < n; k++) SWAP_LAMBDA(L[k + j * n], L[k + (j + 1) * n]);
-    for (k = 0; k < n; k++) SWAP_LAMBDA(Z[k + j * n], Z[k + (j + 1) * n]);
+    for (k = j + 2; k < n; k++)
+        {
+            SWAP_LAMBDA(L[k + j * n], L[k + (j + 1) * n]);
+        }
+    for (k = 0; k < n; k++)
+        {
+            SWAP_LAMBDA(Z[k + j * n], Z[k + (j + 1) * n]);
+        }
 }
 
 
 /* lambda reduction (z=Z'*a, Qz=Z'*Q*Z=L'*diag(D)*L) (ref.[1]) ---------------*/
 void reduction(int n, double *L, double *D, double *Z)
 {
-    int i, j, k;
+    int i;
+    int j;
+    int k;
     double del;
 
     j = n - 2;
@@ -126,7 +142,12 @@ void reduction(int n, double *L, double *D, double *Z)
     while (j >= 0)
         {
             if (j <= k)
-                for (i = j + 1; i < n; i++) gauss(n, L, Z, i, j);
+                {
+                    for (i = j + 1; i < n; i++)
+                        {
+                            gauss(n, L, Z, i, j);
+                        }
+                }
             del = D[j] + L[j + 1 + j * n] * L[j + 1 + j * n] * D[j + 1];
             if (del + 1E-6 < D[j + 1])
                 { /* compared considering numerical error */
@@ -135,7 +156,9 @@ void reduction(int n, double *L, double *D, double *Z)
                     j = n - 2;
                 }
             else
-                j--;
+                {
+                    j--;
+                }
         }
 }
 
@@ -144,9 +167,20 @@ void reduction(int n, double *L, double *D, double *Z)
 int search(int n, int m, const double *L, const double *D,
     const double *zs, double *zn, double *s)
 {
-    int i, j, k, c, nn = 0, imax = 0;
-    double newdist, maxdist = 1E99, y;
-    double *S = zeros(n, n), *dist = mat(n, 1), *zb = mat(n, 1), *z = mat(n, 1), *step = mat(n, 1);
+    int i;
+    int j;
+    int k;
+    int c;
+    int nn = 0;
+    int imax = 0;
+    double newdist;
+    double maxdist = 1E99;
+    double y;
+    double *S = zeros(n, n);
+    double *dist = mat(n, 1);
+    double *zb = mat(n, 1);
+    double *z = mat(n, 1);
+    double *step = mat(n, 1);
 
     k = n - 1;
     dist[k] = 0.0;
@@ -163,7 +197,9 @@ int search(int n, int m, const double *L, const double *D,
                         {
                             dist[--k] = newdist;
                             for (i = 0; i <= k; i++)
-                                S[k + i * n] = S[k + 1 + i * n] + (z[k + 1] - zb[k + 1]) * L[k + 1 + i * n];
+                                {
+                                    S[k + i * n] = S[k + 1 + i * n] + (z[k + 1] - zb[k + 1]) * L[k + 1 + i * n];
+                                }
                             zb[k] = zs[k] + S[k + k * n];
                             z[k] = ROUND_LAMBDA(zb[k]);
                             y = zb[k] - z[k];
@@ -173,18 +209,32 @@ int search(int n, int m, const double *L, const double *D,
                         {
                             if (nn < m)
                                 {
-                                    if (nn == 0 || newdist > s[imax]) imax = nn;
-                                    for (i = 0; i < n; i++) zn[i + nn * n] = z[i];
+                                    if (nn == 0 || newdist > s[imax])
+                                        {
+                                            imax = nn;
+                                        }
+                                    for (i = 0; i < n; i++)
+                                        {
+                                            zn[i + nn * n] = z[i];
+                                        }
                                     s[nn++] = newdist;
                                 }
                             else
                                 {
                                     if (newdist < s[imax])
                                         {
-                                            for (i = 0; i < n; i++) zn[i + imax * n] = z[i];
+                                            for (i = 0; i < n; i++)
+                                                {
+                                                    zn[i + imax * n] = z[i];
+                                                }
                                             s[imax] = newdist;
                                             for (i = imax = 0; i < m; i++)
-                                                if (s[imax] < s[i]) imax = i;
+                                                {
+                                                    if (s[imax] < s[i])
+                                                        {
+                                                            imax = i;
+                                                        }
+                                                }
                                         }
                                     maxdist = s[imax];
                                 }
@@ -196,7 +246,9 @@ int search(int n, int m, const double *L, const double *D,
             else
                 {
                     if (k == n - 1)
-                        break;
+                        {
+                            break;
+                        }
 
                     k++;
                     z[k] += step[k];
@@ -208,9 +260,15 @@ int search(int n, int m, const double *L, const double *D,
         { /* sort by s */
             for (j = i + 1; j < m; j++)
                 {
-                    if (s[i] < s[j]) continue;
+                    if (s[i] < s[j])
+                        {
+                            continue;
+                        }
                     SWAP_LAMBDA(s[i], s[j]);
-                    for (k = 0; k < n; k++) SWAP_LAMBDA(zn[k + i * n], zn[k + j * n]);
+                    for (k = 0; k < n; k++)
+                        {
+                            SWAP_LAMBDA(zn[k + i * n], zn[k + j * n]);
+                        }
                 }
         }
     free(S);
@@ -238,15 +296,22 @@ int search(int n, int m, const double *L, const double *D,
  *          double *F     O  fixed solutions (n x m)
  *          double *s     O  sum of squared residulas of fixed solutions (1 x m)
  * return : status (0:ok,other:error)
- * notes  : matrix stored by column-major order (fortran convension)
+ * notes  : matrix stored by column-major order (fortran convention)
  *-----------------------------------------------------------------------------*/
 int lambda(int n, int m, const double *a, const double *Q, double *F,
     double *s)
 {
     int info;
-    double *L, *D, *Z, *z, *E;
+    double *L;
+    double *D;
+    double *Z;
+    double *z;
+    double *E;
 
-    if (n <= 0 || m <= 0) return -1;
+    if (n <= 0 || m <= 0)
+        {
+            return -1;
+        }
     L = zeros(n, n);
     D = mat(n, 1);
     Z = eye(n);
@@ -284,19 +349,27 @@ int lambda(int n, int m, const double *a, const double *Q, double *F,
  *-----------------------------------------------------------------------------*/
 int lambda_reduction(int n, const double *Q, double *Z)
 {
-    double *L, *D;
-    int i, j, info;
+    double *L;
+    double *D;
+    int i;
+    int j;
+    int info;
 
-    if (n <= 0) return -1;
+    if (n <= 0)
+        {
+            return -1;
+        }
 
     L = zeros(n, n);
     D = mat(n, 1);
 
     for (i = 0; i < n; i++)
-        for (j = 0; j < n; j++)
-            {
-                Z[i + j * n] = i == j ? 1.0 : 0.0;
-            }
+        {
+            for (j = 0; j < n; j++)
+                {
+                    Z[i + j * n] = i == j ? 1.0 : 0.0;
+                }
+        }
     /* LD factorization */
     if ((info = LD(n, Q, L, D)))
         {
@@ -326,10 +399,14 @@ int lambda_reduction(int n, const double *Q, double *Z)
 int lambda_search(int n, int m, const double *a, const double *Q,
     double *F, double *s)
 {
-    double *L, *D;
+    double *L;
+    double *D;
     int info;
 
-    if (n <= 0 || m <= 0) return -1;
+    if (n <= 0 || m <= 0)
+        {
+            return -1;
+        }
 
     L = zeros(n, n);
     D = mat(n, 1);
